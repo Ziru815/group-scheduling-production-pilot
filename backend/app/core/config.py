@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +34,13 @@ class Settings(BaseSettings):
     default_shortlist_size: int = 10
     default_participant_limit: int = 12
     default_timeslot_step_minutes: int = 15
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def select_psycopg_driver(cls, value: str) -> str:
+        if value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+psycopg://", 1)
+        return value
 
     @property
     def cors_origins(self) -> list[str]:

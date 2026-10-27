@@ -12,6 +12,14 @@ This repository integrates the supplied React frontend, FastAPI and SQLModel bac
 
 See `SRS_TRACEABILITY.md` for requirement coverage and the SRS items that still require external credentials or a stakeholder decision.
 
+## Production pilot
+
+The production image serves the React frontend and FastAPI API from one origin. CI verifies Python 3.13, Node 22, Railway configuration, and the root Docker image on every pull request and production-pilot branch update.
+
+- Use `docs/development.md` for a reproducible local setup.
+- Use `docs/deployment.md` for the private GitHub and Railway PostgreSQL deployment procedure.
+- Use `.env.production.example` only as a variable checklist; keep all real secrets in Railway.
+
 ## Fastest demo with Docker
 
 ```bash

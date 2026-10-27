@@ -46,6 +46,18 @@ def test_production_requires_postgresql():
         settings.validate_runtime()
 
 
+def test_railway_postgresql_url_uses_psycopg_driver():
+    settings = production_settings(
+        database_url="postgresql://app:secret@db.internal:5432/group_scheduler?sslmode=require"
+    )
+
+    settings.validate_runtime()
+
+    assert settings.database_url == (
+        "postgresql+psycopg://app:secret@db.internal:5432/group_scheduler?sslmode=require"
+    )
+
+
 def test_production_rejects_automatic_table_creation():
     settings = production_settings(auto_create_tables=True)
 
