@@ -88,6 +88,30 @@ async def test_load_facilities_follows_multiple_pages():
 
 
 @pytest.mark.asyncio
+async def test_load_facilities_preserves_query_in_three_next_links():
+    def handler(request: httpx.Request):
+        offset = int(request.url.params.get("offset", "0"))
+        next_link = None
+        if offset < 2:
+            next_link = (
+                f"/api/action/datastore_search?resource_id={SPORT_FACILITIES_RESOURCE_ID}"
+                f"&offset={offset + 1}&limit=1"
+            )
+        return httpx.Response(
+            200,
+            json=page([row(offset + 1)], total=3, next_link=next_link),
+        )
+
+    source = adapter(handler, page_size=1)
+    try:
+        rows = await source.load_facilities()
+    finally:
+        await source.aclose()
+
+    assert [item.source_row_id for item in rows] == [1, 2, 3]
+
+
+@pytest.mark.asyncio
 async def test_load_facilities_rejects_success_false():
     source = adapter(lambda _request: httpx.Response(200, json=page([], success=False)))
     try:

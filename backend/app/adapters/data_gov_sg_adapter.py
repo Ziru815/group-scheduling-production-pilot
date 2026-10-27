@@ -70,7 +70,11 @@ class DataGovSgAdapter:
         expected_total: int | None = None
 
         while True:
-            request_key = str(httpx.URL(next_url, params=next_params))
+            request_key = str(
+                httpx.URL(next_url, params=next_params)
+                if next_params is not None
+                else httpx.URL(next_url)
+            )
             if request_key in seen_urls:
                 raise CatalogueSourceError("catalogue pagination returned a duplicate page")
             seen_urls.add(request_key)

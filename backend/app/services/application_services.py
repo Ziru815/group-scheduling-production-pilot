@@ -168,12 +168,21 @@ class RecommendationService:
         shortlist = []
         if valid_origins:
             centre_lat = sum(v[0] for v in valid_origins) / len(valid_origins); centre_lon = sum(v[1] for v in valid_origins) / len(valid_origins)
-            venues = VenueRepository(db).supported_for_activity(item.activity_type_id)
+            venues = VenueRepository(db).supported_for_activity(
+                item.activity_type_id,
+                require_verified=not settings.use_mock_providers,
+            )
             ranked_venues = sorted(venues, key=lambda v: (haversine_km(centre_lat, centre_lon, v.latitude, v.longitude), str(v.venue_id)))[:settings.default_shortlist_size]
             for rank, venue in enumerate(ranked_venues, 1):
                 shortlist.append(VenueShortlistEntry(session_id=session_id, venue_id=venue.venue_id, centroid_latitude=centre_lat, centroid_longitude=centre_lon, straight_line_distance_km=haversine_km(centre_lat, centre_lon, venue.latitude, venue.longitude), shortlist_rank=rank, source_revision=snapshot_revision))
         combinations = []
-        venue_by_id = {venue.venue_id: venue for venue in VenueRepository(db).supported_for_activity(item.activity_type_id)}
+        venue_by_id = {
+            venue.venue_id: venue
+            for venue in VenueRepository(db).supported_for_activity(
+                item.activity_type_id,
+                require_verified=not settings.use_mock_providers,
+            )
+        }
         for slot in slots:
             if slot.available_count < item.minimum_attendee_threshold: continue
             for entry in shortlist:

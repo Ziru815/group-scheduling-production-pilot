@@ -161,7 +161,10 @@ def _build_request(db: Session, item: SchedulingSession) -> RecommendationReques
             )
         )
 
-    venues = VenueRepository(db).supported_for_activity(item.activity_type_id)
+    venues = VenueRepository(db).supported_for_activity(
+        item.activity_type_id,
+        require_verified=not settings.use_mock_providers,
+    )
     venue_inputs = tuple(
         VenueInput(
             venue_id=str(venue.venue_id),

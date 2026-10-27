@@ -9,6 +9,7 @@ from app.models import (
     CalendarEvent, CandidateTimeslot, Combination, Participant, RecordStatus,
     SchedulingSession, ShortlistStatus, TimeslotAttendance, TravelEstimate,
     UserAccount, Venue, VenueActivity, VenueShortlistEntry,
+    VenueVerificationStatus,
 )
 
 
@@ -53,8 +54,17 @@ class AvailabilityRepository:
 class VenueRepository:
     def __init__(self, db: Session): self.db = db
     def activities(self): return list(self.db.exec(select(ActivityType).where(ActivityType.is_active == True)).all())  # noqa: E712
-    def supported_for_activity(self, activity_type_id: UUID):
-        return list(self.db.exec(select(Venue).join(VenueActivity, VenueActivity.venue_id == Venue.venue_id).where(VenueActivity.activity_type_id == activity_type_id, VenueActivity.support_status == "SUPPORTED")).all())
+    def supported_for_activity(self, activity_type_id: UUID, *, require_verified: bool = False):
+        query = select(Venue).join(VenueActivity, VenueActivity.venue_id == Venue.venue_id).where(
+            VenueActivity.activity_type_id == activity_type_id,
+            VenueActivity.support_status == "SUPPORTED",
+        )
+        if require_verified:
+            query = query.where(
+                Venue.is_active == True,  # noqa: E712
+                Venue.verification_status == VenueVerificationStatus.VERIFIED_PUBLIC,
+            )
+        return list(self.db.exec(query).all())
 
 
 class RecommendationRepository:
