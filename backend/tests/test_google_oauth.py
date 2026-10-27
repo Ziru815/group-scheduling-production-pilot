@@ -215,6 +215,26 @@ async def test_verify_identity_rejects_unverified_email():
 
 
 @pytest.mark.asyncio
+async def test_complete_wraps_identity_verifier_failure():
+    transport = httpx.MockTransport(
+        lambda _request: httpx.Response(200, json={"id_token": "signed-id-token"})
+    )
+
+    def unavailable_verifier(_token: str, _audience: str):
+        raise RuntimeError("provider keys unavailable")
+
+    client = oauth_client(transport, verifier=unavailable_verifier)
+    try:
+        start = client.begin("/sessions")
+        state = parse_qs(urlparse(start.authorization_url).query)["state"][0]
+
+        with pytest.raises(GoogleOAuthError, match="could not be verified"):
+            await client.complete("code", state, start.transaction_cookie)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_complete_returns_normalized_google_identity():
     verified = {}
 

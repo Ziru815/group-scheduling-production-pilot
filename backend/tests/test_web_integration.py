@@ -1,8 +1,11 @@
 from sqlmodel import Session, SQLModel, create_engine
 from fastapi.testclient import TestClient
+import pytest
 
+from app.adapters.google_oauth import GoogleIdentity, GoogleOAuthError, GoogleOAuthStart
 from app.core.config import settings
 from app.core.database import get_db
+from app.controllers.web_api import get_google_oauth_client
 from app.main import app
 from app.models import ActivityType, SupportStatus, Venue, VenueActivity, VenueCategory
 
@@ -149,4 +152,184 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
         settings.debug_auth_enabled = original_debug
         settings.use_mock_providers = original_mock
         app.dependency_overrides.clear()
+
+
+class FakeGoogleOAuthClient:
+    def __init__(self, *, fail_complete=False):
+        self.begin_paths = []
+        self.complete_calls = []
+        self.fail_complete = fail_complete
+
+    def begin(self, next_path):
+        self.begin_paths.append(next_path)
+        return GoogleOAuthStart(
+            authorization_url="https://accounts.google.test/authorize",
+            transaction_cookie="signed-browser-transaction",
+        )
+
+    async def complete(self, code, returned_state, transaction_cookie):
+        self.complete_calls.append((code, returned_state, transaction_cookie))
+        if self.fail_complete:
+            raise GoogleOAuthError("test failure")
+        return GoogleIdentity(
+            subject="google-subject-123",
+            email="person@example.com",
+            display_name="Person Example",
+            next_path="/sessions",
+        )
+
+
+def oauth_test_client(tmp_path, fake):
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'oauth-web.db'}",
+        connect_args={"check_same_thread": False},
+    )
+    SQLModel.metadata.create_all(engine)
+
+    def override_db():
+        with Session(engine) as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_google_oauth_client] = lambda: fake
+    return TestClient(app, base_url="https://testserver")
+
+
+def set_oauth_test_settings():
+    original = {
+        "debug_auth_enabled": settings.debug_auth_enabled,
+        "session_cookie_secure": settings.session_cookie_secure,
+        "frontend_base_url": settings.frontend_base_url,
+        "google_client_id": settings.google_client_id,
+        "google_client_secret": settings.google_client_secret,
+    }
+    settings.debug_auth_enabled = False
+    settings.session_cookie_secure = True
+    settings.frontend_base_url = "https://scheduler.example"
+    settings.google_client_id = "client.apps.googleusercontent.com"
+    settings.google_client_secret = "google-secret"
+    return original
+
+
+def restore_oauth_test_settings(original):
+    for key, value in original.items():
+        setattr(settings, key, value)
+    app.dependency_overrides.clear()
+
+
+def test_google_login_sets_http_only_transaction_cookie(tmp_path):
+    fake = FakeGoogleOAuthClient()
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            response = client.get(
+                "/api/auth/google/login?next=/sessions/example",
+                follow_redirects=False,
+            )
+
+        assert response.status_code == 302
+        assert response.headers["location"] == "https://accounts.google.test/authorize"
+        cookie = response.headers["set-cookie"]
+        assert "google_oauth_transaction=signed-browser-transaction" in cookie
+        assert "HttpOnly" in cookie
+        assert "Secure" in cookie
+        assert "SameSite=lax" in cookie
+        assert "Path=/" in cookie
+        assert "Max-Age=600" in cookie
+    finally:
+        restore_oauth_test_settings(original)
+
+
+def test_callback_requires_matching_cookie(tmp_path):
+    fake = FakeGoogleOAuthClient()
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            response = client.get(
+                "/api/auth/google/callback?code=code&state=state",
+                follow_redirects=False,
+            )
+
+        assert response.status_code == 302
+        assert response.headers["location"].endswith("/signin?error=unavailable")
+        assert fake.complete_calls == []
+    finally:
+        restore_oauth_test_settings(original)
+
+
+@pytest.mark.parametrize(
+    "callback_path",
+    [
+        "/api/auth/google/callback?error=access_denied",
+        "/api/auth/google/callback?code=code&state=state",
+    ],
+)
+def test_callback_always_clears_transaction_cookie(tmp_path, callback_path):
+    fake = FakeGoogleOAuthClient(fail_complete=True)
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            client.cookies.set("google_oauth_transaction", "signed-browser-transaction")
+            response = client.get(callback_path, follow_redirects=False)
+
+        cookie = response.headers["set-cookie"]
+        assert "google_oauth_transaction=" in cookie
+        assert "Max-Age=0" in cookie
+        assert "Path=/" in cookie
+    finally:
+        restore_oauth_test_settings(original)
+
+
+def test_callback_sets_secure_app_cookie(tmp_path):
+    fake = FakeGoogleOAuthClient()
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            client.cookies.set("google_oauth_transaction", "signed-browser-transaction")
+            response = client.get(
+                "/api/auth/google/callback?code=code&state=state",
+                follow_redirects=False,
+            )
+
+        cookies = response.headers.get_list("set-cookie")
+        app_cookie = next(value for value in cookies if settings.session_cookie_name in value)
+        assert "HttpOnly" in app_cookie
+        assert "Secure" in app_cookie
+        assert "SameSite=lax" in app_cookie
+        assert "Path=/" in app_cookie
+        assert fake.complete_calls == [
+            ("code", "state", "signed-browser-transaction")
+        ]
+    finally:
+        restore_oauth_test_settings(original)
+
+
+def test_login_replaces_external_next_with_signin(tmp_path):
+    fake = FakeGoogleOAuthClient()
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            client.get(
+                "/api/auth/google/login?next=https://attacker.example/steal",
+                follow_redirects=False,
+            )
+
+        assert fake.begin_paths == ["/signin"]
+    finally:
+        restore_oauth_test_settings(original)
+
+
+def test_legacy_google_id_token_endpoint_is_removed(tmp_path):
+    fake = FakeGoogleOAuthClient()
+    original = set_oauth_test_settings()
+    try:
+        with oauth_test_client(tmp_path, fake) as client:
+            response = client.post(
+                "/api/v1/auth/google",
+                json={"id_token": "unbound-id-token"},
+            )
+
+        assert response.status_code == 404
+    finally:
+        restore_oauth_test_settings(original)
 

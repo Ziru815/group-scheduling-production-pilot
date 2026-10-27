@@ -129,7 +129,7 @@ class GoogleOAuthClient:
             if not isinstance(id_token_value, str) or not id_token_value:
                 raise ValueError("missing ID token")
             claims = self.id_token_verifier(id_token_value, self.client_id)
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        except Exception as exc:
             raise GoogleOAuthError("Google identity could not be verified") from exc
 
         self._validate_identity_claims(claims, expected_nonce)

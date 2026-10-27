@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import re
+from collections.abc import AsyncIterator
 from datetime import datetime
-from urllib.parse import urlencode
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlmodel import Session, select
 
+from app.adapters.google_oauth import GoogleOAuthClient, GoogleOAuthError
 from app.adapters.mock import MockGeocoder
 from app.adapters.onemap import OneMapAdapter as EngineOneMapAdapter
 from app.core.config import settings
@@ -62,7 +62,6 @@ from app.services.web_contract_service import (
 )
 
 router = APIRouter(prefix="/api")
-oauth_state = URLSafeTimedSerializer(settings.app_session_secret, salt="google-oauth-state")
 
 DEMO_PERSONAS = {
     "demo-organiser": ("organiser@example.test", "Demo Organiser", "Create and manage sessions"),
@@ -76,9 +75,25 @@ def web_me(user: UserAccount = Depends(current_web_user)):
     return {"id": user.account_id, "displayName": user.display_name, "email": user.email}
 
 
+async def get_google_oauth_client() -> AsyncIterator[GoogleOAuthClient]:
+    async with httpx.AsyncClient(timeout=10) as http_client:
+        yield GoogleOAuthClient(
+            client_id=settings.google_client_id or "",
+            client_secret=settings.google_client_secret or "",
+            redirect_uri=settings.google_redirect_uri,
+            signing_secret=settings.app_session_secret,
+            http_client=http_client,
+            transaction_max_age_seconds=settings.google_oauth_transaction_max_age_seconds,
+        )
+
+
 @router.get("/auth/google/login", tags=["web-authentication"])
-def google_login(next: str = Query(default="/signin"), db: Session = Depends(get_db)):
-    safe_next = _safe_path(next)
+def google_login(
+    next: str = Query(default="/signin"),
+    db: Session = Depends(get_db),
+    oauth_client: GoogleOAuthClient = Depends(get_google_oauth_client),
+):
+    safe_next = _safe_path(next, fallback="/signin")
     if settings.debug_auth_enabled:
         auth = AuthenticationService.development_login(db, *DEMO_PERSONAS["demo-organiser"][:2])
         response = RedirectResponse(_frontend_url(safe_next), status_code=302)
@@ -86,54 +101,44 @@ def google_login(next: str = Query(default="/signin"), db: Session = Depends(get
         return response
     if not settings.google_client_id or not settings.google_client_secret:
         return RedirectResponse(_frontend_url("/signin?error=unavailable"), status_code=302)
-    state = oauth_state.dumps({"next": safe_next})
-    query = urlencode(
-        {
-            "client_id": settings.google_client_id,
-            "redirect_uri": settings.google_redirect_uri,
-            "response_type": "code",
-            "scope": "openid email profile",
-            "state": state,
-            "access_type": "online",
-            "prompt": "select_account",
-        }
+    start = oauth_client.begin(safe_next)
+    response = RedirectResponse(start.authorization_url, status_code=302)
+    response.set_cookie(
+        settings.google_oauth_transaction_cookie_name,
+        start.transaction_cookie,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        max_age=settings.google_oauth_transaction_max_age_seconds,
+        path="/",
     )
-    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{query}", status_code=302)
+    return response
 
 
 @router.get("/auth/google/callback", tags=["web-authentication"])
 async def google_callback(
+    request: Request,
     code: str | None = None,
     state: str | None = None,
     error: str | None = None,
     db: Session = Depends(get_db),
+    oauth_client: GoogleOAuthClient = Depends(get_google_oauth_client),
 ):
-    if error or not code or not state:
-        return RedirectResponse(_frontend_url("/signin?error=declined"), status_code=302)
-    try:
-        state_data = oauth_state.loads(state, max_age=600)
-        next_path = _safe_path(state_data.get("next", "/sessions"))
-    except (BadSignature, SignatureExpired, TypeError):
-        return RedirectResponse(_frontend_url("/signin?error=unavailable"), status_code=302)
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            token_response = await client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "code": code,
-                    "client_id": settings.google_client_id,
-                    "client_secret": settings.google_client_secret,
-                    "redirect_uri": settings.google_redirect_uri,
-                    "grant_type": "authorization_code",
-                },
-            )
-            token_response.raise_for_status()
-            id_token_value = token_response.json()["id_token"]
-        auth = AuthenticationService.google_login(db, id_token_value)
-    except Exception:
-        return RedirectResponse(_frontend_url("/signin?error=unavailable"), status_code=302)
-    response = RedirectResponse(_frontend_url(next_path), status_code=302)
-    _set_cookie(response, auth.access_token)
+    transaction_cookie = request.cookies.get(settings.google_oauth_transaction_cookie_name)
+    if error:
+        response = RedirectResponse(_frontend_url("/signin?error=declined"), status_code=302)
+    elif not code or not state or not transaction_cookie:
+        response = RedirectResponse(_frontend_url("/signin?error=unavailable"), status_code=302)
+    else:
+        try:
+            identity = await oauth_client.complete(code, state, transaction_cookie)
+            auth = AuthenticationService.google_identity_login(db, identity)
+        except (GoogleOAuthError, HTTPException):
+            response = RedirectResponse(_frontend_url("/signin?error=unavailable"), status_code=302)
+        else:
+            response = RedirectResponse(_frontend_url(identity.next_path), status_code=302)
+            _set_cookie(response, auth.access_token)
+    _clear_google_transaction_cookie(response)
     return response
 
 
@@ -432,9 +437,19 @@ def _set_cookie(response: Response, token: str) -> None:
     )
 
 
-def _safe_path(value: str) -> str:
+def _clear_google_transaction_cookie(response: Response) -> None:
+    response.delete_cookie(
+        settings.google_oauth_transaction_cookie_name,
+        path="/",
+        secure=settings.session_cookie_secure,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def _safe_path(value: str, fallback: str = "/sessions") -> str:
     if not value.startswith("/") or value.startswith("//") or "\n" in value or "\r" in value:
-        return "/sessions"
+        return fallback
     return value
 
 

@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+    google_oauth_transaction_cookie_name: str = "google_oauth_transaction"
+    google_oauth_transaction_max_age_seconds: int = 600
     app_session_secret: str = "change-me-before-deployment"
     session_cookie_name: str = "group_scheduler_session"
     session_cookie_secure: bool = False

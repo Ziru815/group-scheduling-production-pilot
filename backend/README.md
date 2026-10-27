@@ -34,7 +34,7 @@ To use SQLite without Docker, set `DATABASE_URL=sqlite:///./group_scheduling.db`
 
 ## Recommended API flow
 
-1. `POST /auth/google` (or `/auth/dev` locally).
+1. `GET /api/auth/google/login` in a browser (or `POST /api/v1/auth/dev` locally).
 2. `GET /activities`, then `POST /sessions`; save the returned invitation token.
 3. Other signed-in users `POST /participants/join`.
 4. Each member `PUT /sessions/{id}/availability/me`, then geocodes their own record.

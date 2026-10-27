@@ -9,7 +9,7 @@ from app.core.security import current_user
 from app.models import ActivityType, AvailabilityRecord, Combination, Participant, SchedulingSession, UserAccount
 from app.schemas import (
     AuthResponse, AvailabilityOwn, AvailabilitySubmit, ConfirmRequest, DevLoginRequest,
-    GenerateResult, GoogleLoginRequest, JoinRequest, Message, ParticipantPublic,
+    GenerateResult, JoinRequest, Message, ParticipantPublic,
     RankedCombination, RecommendationSettings, SessionCreate, SessionManagement,
     SessionPublic, SessionUpdate,
 )
@@ -19,10 +19,6 @@ from app.services.authorization_service import require_member, require_organiser
 from app.services.travel_service import TravelService
 
 router = APIRouter()
-
-
-@router.post("/auth/google", response_model=AuthResponse, tags=["authentication"])
-def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)): return AuthenticationService.google_login(db, payload.id_token)
 
 
 @router.post("/auth/dev", response_model=AuthResponse, tags=["authentication"])
