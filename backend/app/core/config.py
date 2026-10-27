@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     session_cookie_name: str = "group_scheduler_session"
     session_cookie_secure: bool = False
     frontend_base_url: str = "http://localhost:5173"
+    static_dir: str | None = None
     debug_auth_enabled: bool = False
     use_mock_providers: bool = False
     onemap_base_url: str = "https://www.onemap.gov.sg/api"

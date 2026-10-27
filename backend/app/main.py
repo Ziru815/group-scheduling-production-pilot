@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -10,6 +11,7 @@ from app.controllers import router
 from app.controllers.web_api import router as web_router
 from app.core.config import settings
 from app.core.database import create_db_and_tables, database_is_ready
+from app.static_site import mount_static_site
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -85,4 +87,8 @@ def _error_code(status_code: int, detail: str) -> str:
     if status_code == 503:
         return "EXTERNAL_SERVICE_UNAVAILABLE"
     return "UNKNOWN"
+
+
+if settings.static_dir:
+    mount_static_site(app, Path(settings.static_dir))
 

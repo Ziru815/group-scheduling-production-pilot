@@ -1,4 +1,5 @@
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import app.main as main_module
@@ -110,3 +111,48 @@ def test_ready_returns_503_when_database_fails(monkeypatch):
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "EXTERNAL_SERVICE_UNAVAILABLE"
+
+
+def static_test_client(tmp_path) -> TestClient:
+    from app.static_site import mount_static_site
+
+    static_dir = tmp_path / "static"
+    assets_dir = static_dir / "assets"
+    assets_dir.mkdir(parents=True)
+    (static_dir / "index.html").write_text("<html><body>pilot shell</body></html>")
+    (assets_dir / "app.js").write_text("window.pilot = true")
+    application = FastAPI()
+
+    @application.get("/api/ping")
+    def ping():
+        return {"status": "ok"}
+
+    mount_static_site(application, static_dir)
+    return TestClient(application)
+
+
+def test_spa_fallback_serves_deep_link(tmp_path):
+    with static_test_client(tmp_path) as client:
+        response = client.get("/sessions/example")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "pilot shell" in response.text
+
+
+def test_static_asset_is_served(tmp_path):
+    with static_test_client(tmp_path) as client:
+        response = client.get("/assets/app.js")
+
+    assert response.status_code == 200
+    assert "javascript" in response.headers["content-type"]
+    assert response.text == "window.pilot = true"
+
+
+def test_unknown_api_route_remains_json_404(tmp_path):
+    with static_test_client(tmp_path) as client:
+        response = client.get("/api/not-real")
+
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {"detail": "Not Found"}
