@@ -25,6 +25,9 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
   let cls = 'ropt'
   if (expanded) cls += ' ropt--expanded'
   if (o.rank === 1 && !unavailable) cls += ' ropt--top'
+  const venueUpdated = o.venue.lastUpdated
+    ? new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium' }).format(new Date(o.venue.lastUpdated))
+    : null
 
   return (
     <article className={cls}>
@@ -100,6 +103,10 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
               Open in Google Maps
             </a>
           </div>
+          <p className="ropt__source">
+            Venue data: {o.venue.dataSource}
+            {venueUpdated && ` · updated ${venueUpdated}`}. Check ActiveSG for current closures and booking details.
+          </p>
           <p className="ropt__breakdown">
             Attendance score {o.attendanceScore} · travel score {o.travelScore}
             {o.totalTravelMinutes !== null && ` · ${o.totalTravelMinutes} min total travel, longest ${o.maxTravelMinutes} min`}

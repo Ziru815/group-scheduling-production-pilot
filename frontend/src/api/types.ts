@@ -167,6 +167,9 @@ export interface VenueSummary {
   address: string
   latitude: number
   longitude: number
+  /** Catalogue provenance only; this is not a live availability claim. */
+  dataSource: string
+  lastUpdated: IsoDateTime | null
 }
 
 /** The Organiser's final choice (FR-E4, FR-E5). */

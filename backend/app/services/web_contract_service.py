@@ -479,6 +479,13 @@ def _participant_mode(db: Session, participant_id: UUID) -> str:
 
 
 def _venue(venue: Venue) -> dict:
+    source_label = (
+        "Sport Singapore via data.gov.sg"
+        if venue.data_source == "DATA_GOV_SG_SPORT_FACILITIES"
+        else "Demo catalogue"
+        if venue.data_source == "DEMO"
+        else venue.data_source
+    )
     return {
         "id": venue.venue_id,
         "name": venue.name,
@@ -486,6 +493,10 @@ def _venue(venue: Venue) -> dict:
         "address": venue.address,
         "latitude": venue.latitude,
         "longitude": venue.longitude,
+        "dataSource": source_label,
+        "lastUpdated": (
+            _aware_utc(venue.last_synced_at) if venue.last_synced_at else None
+        ),
     }
 
 

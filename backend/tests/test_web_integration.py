@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlmodel import Session, SQLModel, create_engine, select
 from fastapi.testclient import TestClient
 import pytest
@@ -7,7 +9,15 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.controllers.web_api import get_google_oauth_client
 from app.main import app
-from app.models import ActivityType, SupportStatus, UserAccount, Venue, VenueActivity, VenueCategory
+from app.models import (
+    ActivityType,
+    SupportStatus,
+    UserAccount,
+    Venue,
+    VenueActivity,
+    VenueCategory,
+    VenueVerificationStatus,
+)
 
 
 def test_frontend_backend_recommender_round_trip(tmp_path):
@@ -26,7 +36,11 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
                 address="5 Bishan Street 14, Singapore 579783 (demo)",
                 latitude=1.3547,
                 longitude=103.8507,
-                data_source="DEMO",
+                data_source="DATA_GOV_SG_SPORT_FACILITIES",
+                postal_code="579783",
+                source_key="a" * 64,
+                last_synced_at=datetime(2026, 10, 28, 8, tzinfo=timezone.utc),
+                verification_status=VenueVerificationStatus.VERIFIED_PUBLIC,
                 minimum_group_size=2,
                 optimal_group_size=8,
                 advance_booking_lead_minutes=60,
@@ -134,6 +148,15 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
             assert recommendations["isNearMatch"] is False
             assert recommendations["combinations"]
             assert recommendations["combinations"][0]["feasibilityStatus"] == "FEASIBLE"
+            bishan_venue = next(
+                option["venue"]
+                for option in recommendations["combinations"]
+                if option["venue"]["name"] == "Bishan Sports Hall"
+            )
+            assert bishan_venue["dataSource"] == "Sport Singapore via data.gov.sg"
+            assert bishan_venue["lastUpdated"] == "2026-10-28T08:00:00+00:00"
+            assert "available" not in bishan_venue
+            assert "bookable" not in bishan_venue
 
             # Editing a response invalidates the first snapshot. Regeneration
             # must replace identical Candidate Timeslots instead of violating

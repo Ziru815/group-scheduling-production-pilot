@@ -124,6 +124,8 @@ type ExternalServiceStatus = 'RECEIVED' | 'UNAVAILABLE' | 'ERROR'
 interface VenueSummary {           // public data (§5.5)
   id: string; name: string; category: VenueCategory
   address: string; latitude: number; longitude: number
+  dataSource: string               // catalogue provenance, not live availability
+  lastUpdated: string | null        // ISO catalogue-sync timestamp
 }
 
 interface ConfirmedPlan {
@@ -156,6 +158,10 @@ interface SessionDetail {
   confirmed: ConfirmedPlan | null
 }
 ```
+
+`VenueSummary.dataSource` and `lastUpdated` describe catalogue provenance only.
+They do not claim that a court is currently available or bookable; clients must
+direct users to ActiveSG for current closures and booking details.
 
 ---
 

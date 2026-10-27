@@ -221,8 +221,10 @@ function seed(): MockDb {
   ]
 
   // Public Venue data (§5.5). Addresses and coordinates are approximate mock values.
+  const demoVenueProvenance = { dataSource: 'Demo catalogue', lastUpdated: null } as const
   const venues: MockDb['venues'] = [
     {
+      ...demoVenueProvenance,
       id: 'v-jw-hall',
       name: 'Jurong West Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -232,6 +234,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-basketball', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-clementi-hall',
       name: 'Clementi Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -241,6 +244,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-basketball'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-gombak-hall',
       name: 'Bukit Gombak Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -250,6 +254,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-cck-stadium',
       name: 'Choa Chu Kang Stadium',
       category: 'SPORTS_FACILITY',
@@ -259,6 +264,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-football', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-westcoast-park',
       name: 'West Coast Park',
       category: 'PARK',
@@ -268,6 +274,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-football', 'at-picnic', 'at-cycling'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jl-gardens',
       name: 'Jurong Lake Gardens',
       category: 'PARK',
@@ -277,6 +284,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-picnic', 'at-cycling', 'at-hiking'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jurong-point',
       name: 'Jurong Point',
       category: 'MALL',
@@ -286,6 +294,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-karaoke', 'at-dinner', 'at-boardgames'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jem',
       name: 'JEM',
       category: 'MALL',

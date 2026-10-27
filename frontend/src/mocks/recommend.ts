@@ -209,6 +209,8 @@ export function rank(db: MockDb, session: MockSession, set: MockRecommendationSe
         address: venue.address,
         latitude: venue.latitude,
         longitude: venue.longitude,
+        dataSource: venue.dataSource,
+        lastUpdated: venue.lastUpdated,
       },
       start: c.start,
       end: c.end,
