@@ -94,6 +94,8 @@ class DataGovSgAdapter:
             if not isinstance(records, list) or page_total < 0:
                 raise CatalogueSourceError("catalogue response metadata is invalid")
             if expected_total is None:
+                if page_total == 0:
+                    raise CatalogueSourceError("official catalogue unexpectedly returned empty")
                 expected_total = page_total
             elif expected_total != page_total:
                 raise CatalogueSourceError("catalogue total changed during pagination")

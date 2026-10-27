@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 import os
 
@@ -16,6 +16,7 @@ from app.core.config import settings
 from app.services.venue_catalog import (
     VenueCatalogSyncService,
     NormalizedVenue,
+    VerifiedVenueEvidence,
     enrich_venue_addresses,
     load_verified_venue_allowlist,
     normalize_facilities,
@@ -35,6 +36,14 @@ def normalization_counts(
         "rejected_rows": len(source_rows) - recognized_rows,
         "normalized_venues": len(normalized),
     }
+
+
+def venues_for_address_enrichment(
+    venues: Sequence[NormalizedVenue],
+    allowlist: Mapping[str, VerifiedVenueEvidence],
+) -> list[NormalizedVenue]:
+    """Avoid thousands of OneMap calls for venues production will not expose."""
+    return [venue for venue in venues if venue.source_key in allowlist]
 
 
 def parse_args() -> argparse.Namespace:
@@ -77,7 +86,10 @@ async def run(*, apply: bool) -> None:
         base_url=base_url,
     )
     try:
-        addresses = await enrich_venue_addresses(normalized, geocoder)
+        addresses = await enrich_venue_addresses(
+            venues_for_address_enrichment(normalized, allowlist),
+            geocoder,
+        )
     finally:
         await geocoder.aclose()
 

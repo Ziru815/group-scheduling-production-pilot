@@ -47,7 +47,7 @@ Most recent automated verification:
 
 | Check | Result | Date |
 | --- | --- | --- |
-| Backend test suite | `PASS — 138 tests` | 2026-10-28 |
+| Backend test suite | `PASS — 140 tests` | 2026-10-28 |
 | Frontend lint | `PASS` | 2026-10-28 |
 | Frontend production build | `PASS` | 2026-10-28 |
 | Railway IaC typecheck | `PASS` | 2026-10-28 |

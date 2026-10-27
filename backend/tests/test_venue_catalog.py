@@ -25,7 +25,7 @@ from app.services.venue_catalog import (
     normalize_facilities,
     venue_source_key,
 )
-from scripts.sync_venues import normalization_counts
+from scripts.sync_venues import normalization_counts, venues_for_address_enrichment
 
 
 ALLOWLIST_PATH = (
@@ -119,6 +119,20 @@ def test_normalization_counts_distinguish_rows_from_collapsed_venues():
         "rejected_rows": 2,
         "normalized_venues": 1,
     }
+
+
+def test_address_enrichment_is_limited_to_verified_allowlist():
+    verified = normalized_bishan()
+    unverified = normalize_facilities(
+        [source_row(9, venue_name="Unknown Public-Looking Hall", postal_code="123456")]
+    )[0]
+
+    selected = venues_for_address_enrichment(
+        [verified, unverified],
+        load_verified_venue_allowlist(),
+    )
+
+    assert selected == [verified]
 
 
 def test_source_key_is_stable_across_row_order():

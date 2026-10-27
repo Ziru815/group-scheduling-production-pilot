@@ -224,3 +224,13 @@ async def test_load_facilities_rejects_truncated_response():
             await source.load_facilities()
     finally:
         await source.aclose()
+
+
+@pytest.mark.asyncio
+async def test_load_facilities_rejects_empty_official_catalogue():
+    source = adapter(lambda _request: httpx.Response(200, json=page([], total=0)))
+    try:
+        with pytest.raises(CatalogueSourceError, match="empty"):
+            await source.load_facilities()
+    finally:
+        await source.aclose()
