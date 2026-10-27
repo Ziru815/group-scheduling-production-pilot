@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     onemap_token: str | None = None
     onemap_email: str | None = None
     onemap_password: str | None = None
-    data_gov_sg_base_url: str = "https://api-open.data.gov.sg"
+    data_gov_sg_base_url: str = "https://data.gov.sg"
     lta_account_key: str | None = None
     default_journey_cap_minutes: int = 60
     default_minimum_attendees: int = 2

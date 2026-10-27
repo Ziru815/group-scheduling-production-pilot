@@ -46,14 +46,38 @@ def test_geocode_valid(run):
         assert req.url.params["returnGeom"] == "Y"
         return httpx.Response(200, json=SEARCH_HIT)
 
-    result = run(adapter(handler).geocode(" 579827 "))
+    result = run(adapter(handler, token="tok").geocode(" 579827 "))
     assert result.status is GeocodeStatus.VALID
     [m] = result.matches
     assert m.postal_code == "579827" and abs(m.coordinates.lat - 1.35092) < 1e-9
 
 
+def test_geocode_uses_bearer_token(run):
+    def handler(req: httpx.Request):
+        assert req.headers["Authorization"] == "Bearer search-token"
+        return httpx.Response(200, json=SEARCH_HIT)
+
+    result = run(adapter(handler, token="search-token").geocode("579827"))
+
+    assert result.status is GeocodeStatus.VALID
+
+
+def test_geocode_without_credentials_is_unavailable(run):
+    called = False
+
+    def handler(_req: httpx.Request):
+        nonlocal called
+        called = True
+        return httpx.Response(200, json=SEARCH_HIT)
+
+    result = run(adapter(handler).geocode("579827"))
+
+    assert result.status is GeocodeStatus.UNAVAILABLE
+    assert called is False
+
+
 def test_geocode_no_match_is_invalid(run):
-    result = run(adapter(lambda r: httpx.Response(200, json={"found": 0, "results": []})).geocode("zzz"))
+    result = run(adapter(lambda r: httpx.Response(200, json={"found": 0, "results": []}), token="tok").geocode("zzz"))
     assert result.status is GeocodeStatus.INVALID
 
 
@@ -61,8 +85,8 @@ def test_geocode_outage_is_unavailable(run):
     def down(req):
         raise httpx.ConnectError("down", request=req)
 
-    assert run(adapter(down).geocode("579827")).status is GeocodeStatus.UNAVAILABLE
-    assert run(adapter(lambda r: httpx.Response(503)).geocode("579827")).status is GeocodeStatus.UNAVAILABLE
+    assert run(adapter(down, token="tok").geocode("579827")).status is GeocodeStatus.UNAVAILABLE
+    assert run(adapter(lambda r: httpx.Response(503), token="tok").geocode("579827")).status is GeocodeStatus.UNAVAILABLE
 
 
 def test_route_walk_uses_bearer_token_and_rounds_up(run):

@@ -96,13 +96,23 @@ class OneMapAdapter:
         query = query.strip()
         if not query:
             return GeocodeResult(status=GeocodeStatus.INVALID, detail="empty query")
+        token = await self._get_token()
+        if token is None:
+            return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail="no OneMap token")
         params = {"searchVal": query, "returnGeom": "Y", "getAddrDetails": "Y", "pageNum": "1"}
         try:
             resp = await self._client.get(
-                f"{self._base_url}/api/common/elastic/search", params=params
+                f"{self._base_url}/api/common/elastic/search",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
             )
         except httpx.HTTPError as exc:
             return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail=type(exc).__name__)
+        if resp.status_code in (401, 403):
+            if self._static_token is None:
+                self._token = None
+                self._token_expires_at = None
+            return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail="OneMap rejected the token")
         if _is_unavailable(resp):
             return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail=f"HTTP {resp.status_code}")
         try:
