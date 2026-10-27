@@ -1,0 +1,66 @@
+[
+  {
+    "source_key": "085b5262397e680f84f5c1eb6d4becdcc39ed2a6a17b526c4ac2152851fbad65",
+    "source_name": "Bishan Sport Centre",
+    "postal_code": "579783",
+    "canonical_name": "Bishan Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bishan-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "4e64929f1505ead854bc28df99c2bb1bf42665fc24059f1bdec8cbf160bd7a17",
+    "source_name": "Clementi Sport Centre",
+    "postal_code": "129907",
+    "canonical_name": "Clementi Sport Centre",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/clementi-sport-centre",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "3e41a8328dbeb046c65e82d52c03247b01431d568950654540c3f3e04ef2ff30",
+    "source_name": "Delta Sport Centre",
+    "postal_code": "158790",
+    "canonical_name": "Delta Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/delta-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "4f454bc6cd655fdd191d998e03207ac3b90bd90c8d078c5fdaa1d3ca5100a02c",
+    "source_name": "Heartbeat@Bedok",
+    "postal_code": "469662",
+    "canonical_name": "Heartbeat @ Bedok ActiveSG Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/heartbeat-bedok-activesg-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "01c551081e5584b7942340db2dea1d5d0d1673f7eeb4d6198cab65ac6afaaa1e",
+    "source_name": "Hougang Sports Centre",
+    "postal_code": "538832",
+    "canonical_name": "Hougang Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/hougang-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "7f2a5249eaaa4031f50620e5544dc051da2edd6fdaf69a4dcbe22c8bd8c3b995",
+    "source_name": "Pasir Ris Sport Centre",
+    "postal_code": "519640",
+    "canonical_name": "Pasir Ris Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/pasir-ris-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "60d16753b16d0e7986c6a86dd75bae9c3a15605efa2413157059fcd643b977bf",
+    "source_name": "Sengkang Sport Centre",
+    "postal_code": "544964",
+    "canonical_name": "Sengkang Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/sengkang-sport-hall",
+    "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "afb7d2c3b20500fd28aa328b2e985cc47b5afab608bf7835ba5aa622ee705b39",
+    "source_name": "Yishun Sport Hall",
+    "postal_code": "769130",
+    "canonical_name": "Yishun Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/yishun-sport-hall",
+    "verified_on": "2026-10-28"
+  }
+]

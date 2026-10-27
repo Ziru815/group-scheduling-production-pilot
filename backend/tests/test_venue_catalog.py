@@ -1,5 +1,20 @@
+import json
+from datetime import date
+from pathlib import Path
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import Session, SQLModel, create_engine
+
 from app.adapters.data_gov_sg_adapter import SourceFacilityRow
-from app.services.venue_catalog import normalize_facilities
+from app.models.domain import Venue
+from app.models.enums import VenueCategory, VenueVerificationStatus
+from app.services.venue_catalog import normalize_facilities, venue_source_key
+
+
+ALLOWLIST_PATH = (
+    Path(__file__).parents[1] / "app" / "data" / "verified_public_sports_venues.json"
+)
 
 
 def source_row(row_id=1, **overrides):
@@ -81,3 +96,68 @@ def test_source_key_is_stable_across_row_order():
 
     assert forward == reverse
     assert len(forward[0].source_key) == 64
+
+
+def test_venue_model_defaults_real_rows_to_unverified():
+    venue = Venue(
+        name="Bishan Sport Centre",
+        category=VenueCategory.SPORTS_FACILITY,
+        address="5 Bishan Street 14 Singapore 579783",
+        postal_code="579783",
+        latitude=1.356,
+        longitude=103.851,
+        data_source="DATA_GOV_SG_SPORT_FACILITIES",
+        source_key=venue_source_key("Bishan Sport Centre", "579783"),
+    )
+
+    assert venue.verification_status == VenueVerificationStatus.UNVERIFIED
+    assert venue.is_active is True
+    assert venue.last_synced_at is None
+    assert venue.minimum_group_size is None
+    assert venue.optimal_group_size is None
+    assert venue.advance_booking_lead_minutes is None
+
+
+def test_venue_model_enforces_unique_source_identity():
+    engine = create_engine("sqlite://")
+    SQLModel.metadata.create_all(engine)
+    source_key = venue_source_key("Bishan Sport Centre", "579783")
+
+    with Session(engine) as session:
+        for name in ("Bishan Sport Centre", "Duplicate Bishan"):
+            session.add(
+                Venue(
+                    name=name,
+                    category=VenueCategory.SPORTS_FACILITY,
+                    address="5 Bishan Street 14 Singapore 579783",
+                    postal_code="579783",
+                    latitude=1.356,
+                    longitude=103.851,
+                    data_source="DATA_GOV_SG_SPORT_FACILITIES",
+                    source_key=source_key,
+                )
+            )
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+
+def test_verified_venue_allowlist_has_complete_official_evidence():
+    entries = json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
+
+    assert len(entries) >= 8
+    assert len({entry["source_key"] for entry in entries}) == len(entries)
+    for entry in entries:
+        assert entry["source_key"] == venue_source_key(
+            entry["source_name"], entry["postal_code"]
+        )
+        assert entry["canonical_name"].strip()
+        assert entry["verification_url"].startswith(
+            "https://www.activesgcircle.gov.sg/"
+        )
+        date.fromisoformat(entry["verified_on"])
+
+
+def test_verified_venue_allowlist_excludes_closed_toa_payoh_centre():
+    entries = json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
+
+    assert all("toa payoh" not in entry["canonical_name"].casefold() for entry in entries)

@@ -59,7 +59,7 @@ def normalize_facilities(rows: Iterable[SourceFacilityRow]) -> list[NormalizedVe
     venues: list[NormalizedVenue] = []
     for (matched_name, postal_code), source_rows in grouped.items():
         representative = min(source_rows, key=lambda item: item.source_row_id)
-        source_key = sha256(f"{matched_name}|{postal_code}".encode()).hexdigest()
+        source_key = venue_source_key(matched_name, postal_code)
         venues.append(
             NormalizedVenue(
                 source_key=source_key,
@@ -71,6 +71,13 @@ def normalize_facilities(rows: Iterable[SourceFacilityRow]) -> list[NormalizedVe
             )
         )
     return sorted(venues, key=lambda venue: venue.source_key)
+
+
+def venue_source_key(name: str, postal_code: str) -> str:
+    """Return the stable source identity shared by normalization and curation."""
+    normalized_name = _match_text(name)
+    normalized_postal = _collapse_whitespace(postal_code)
+    return sha256(f"{normalized_name}|{normalized_postal}".encode()).hexdigest()
 
 
 def _collapse_whitespace(value: str) -> str:

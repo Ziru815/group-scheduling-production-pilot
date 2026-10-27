@@ -117,13 +117,34 @@ class AvailabilityInterval(SQLModel, table=True):
 
 class Venue(SQLModel, table=True):
     __tablename__ = "venues"
+    __table_args__ = (
+        UniqueConstraint(
+            "data_source",
+            "source_key",
+            name="uq_venues_data_source_source_key",
+        ),
+    )
     venue_id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str = Field(index=True, max_length=180)
     category: VenueCategory = Field(sa_column=enum_column(VenueCategory, VenueCategory.SPORTS_FACILITY))
     address: str = Field(max_length=300)
+    postal_code: Optional[str] = Field(default=None, max_length=6)
     latitude: float
     longitude: float
     data_source: str = Field(max_length=100)
+    source_key: Optional[str] = Field(default=None, max_length=64)
+    last_synced_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    is_active: bool = True
+    verification_status: VenueVerificationStatus = Field(
+        default=VenueVerificationStatus.UNVERIFIED,
+        sa_column=enum_column(
+            VenueVerificationStatus,
+            VenueVerificationStatus.UNVERIFIED,
+        ),
+    )
     minimum_group_size: Optional[int] = None
     optimal_group_size: Optional[int] = None
     advance_booking_lead_minutes: Optional[int] = None
