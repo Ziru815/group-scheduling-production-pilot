@@ -11,7 +11,10 @@ export default defineRailway(() => {
     deploy: {
       startCommand:
         "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'",
-      preDeployCommand: ["alembic upgrade head"],
+      preDeployCommand: [
+        "alembic upgrade head",
+        "python -m scripts.seed_reference_data",
+      ],
       healthcheckPath: "/ready",
       healthcheckTimeout: 300,
       restartPolicyType: "ON_FAILURE",

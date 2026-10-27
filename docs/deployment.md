@@ -15,7 +15,7 @@ Do not commit `.env` files, Google client secrets, OneMap credentials, exported 
 1. In Railway, create a project from the private GitHub repository and select the root `Dockerfile` for the application service.
 2. Add a PostgreSQL service named `postgres` and keep the application service name `app`, matching `.railway/railway.ts`.
 3. Generate a Railway domain for `app`.
-4. Install Railway CLI 5.42.1 or newer, sign in, and link this checkout to the project and production environment.
+4. Install the current Railway CLI, sign in, and link this checkout to the project and production environment.
 5. From the repository root, run:
 
    ```bash
@@ -67,11 +67,17 @@ Sign-in requests only `openid email profile`; do not add Calendar scopes to this
 For every deployment Railway should:
 
 1. build the root Dockerfile;
-2. run `alembic upgrade head` from the image's `/app/backend` working directory as the pre-deploy command;
-3. start Uvicorn on Railway's `$PORT`;
-4. accept the release only after `/ready` returns HTTP 200.
+2. run `alembic upgrade head` from the image's `/app/backend` working directory;
+3. run `python -m scripts.seed_reference_data` to idempotently create only the six public activity types—never demo users or venues;
+4. start Uvicorn on Railway's `$PORT`;
+5. accept the release only after `/ready` returns HTTP 200.
 
 The migration must finish successfully before the new application starts. `AUTO_CREATE_TABLES` stays false in production so startup cannot silently create an unreviewed schema.
+
+After the first healthy deployment, run `python -m scripts.sync_venues --dry-run`
+and review its counts before running `python -m scripts.sync_venues --apply`.
+The sync is separate from every deployment so an upstream provider outage cannot
+block an otherwise safe application release.
 
 ## 6. Verify a release
 

@@ -1,9 +1,12 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlmodel import Session, SQLModel, create_engine, select
 
 import app.main as main_module
 from app.core.config import Settings
+from app.models import ActivityType, Venue
+from scripts.seed_reference_data import seed_reference_data
 
 
 def production_settings(**overrides) -> Settings:
@@ -103,6 +106,28 @@ def test_production_requires_external_provider_configuration(overrides, missing_
 
 def test_development_allows_local_defaults():
     Settings(_env_file=None).validate_runtime()
+
+
+def test_reference_seed_is_idempotent_and_does_not_create_demo_venues():
+    engine = create_engine("sqlite://")
+    SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        first = seed_reference_data(session)
+        second = seed_reference_data(session)
+        names = {item.name for item in session.exec(select(ActivityType)).all()}
+
+        assert first == 6
+        assert second == 0
+        assert names == {
+            "Badminton",
+            "Football",
+            "Basketball",
+            "Picnic",
+            "Board Games",
+            "Bowling",
+        }
+        assert list(session.exec(select(Venue)).all()) == []
 
 
 def test_ready_returns_200_when_database_responds(monkeypatch):
