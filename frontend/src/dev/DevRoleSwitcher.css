@@ -1,0 +1,94 @@
+/* Sits in the header's top-right corner so it never covers page actions. */
+.devswitch {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + (var(--header-height) - 32px) / 2);
+  right: var(--space-2);
+  z-index: 20;
+  display: grid;
+  justify-items: end;
+  gap: var(--space-2);
+  max-width: calc(100vw - 2 * var(--space-2));
+}
+
+.devswitch__toggle {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px dashed var(--color-warning-text);
+  border-radius: var(--radius-pill);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.devswitch__panel {
+  width: 300px;
+  max-width: 100%;
+  max-height: 60dvh;
+  overflow-y: auto;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-warning-text);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}
+
+.devswitch__heading {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-warning-text);
+}
+
+.devswitch__list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.devswitch__item {
+  display: grid;
+  width: 100%;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: left;
+}
+
+.devswitch__item:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+.devswitch__item--current {
+  background: var(--color-primary-soft);
+  cursor: default;
+}
+
+.devswitch__name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.devswitch__summary {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.devswitch__signout {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  font-weight: 600;
+}

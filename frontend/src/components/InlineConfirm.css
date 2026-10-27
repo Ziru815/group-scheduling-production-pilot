@@ -1,0 +1,32 @@
+.iconfirm {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: var(--text-sm);
+}
+
+.iconfirm__actions {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.iconfirm__danger {
+  min-height: var(--tap-target);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.iconfirm__cancel {
+  min-height: var(--tap-target);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}

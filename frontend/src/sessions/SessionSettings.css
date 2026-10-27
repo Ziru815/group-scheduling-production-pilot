@@ -1,0 +1,90 @@
+.ssettings {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ssettings--editing {
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.ssettings__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ssettings__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.ssettings__edit,
+.ssettings__cancel {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.ssettings__cancel {
+  min-height: var(--tap-target);
+  color: var(--color-text-muted);
+}
+
+.ssettings__list {
+  margin: 0;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.ssettings__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.ssettings__row:last-child {
+  border-bottom: 0;
+}
+
+.ssettings__row dt {
+  color: var(--color-text-muted);
+}
+
+.ssettings__row dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.ssettings__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.ssettings__actions {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ssettings__error {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}

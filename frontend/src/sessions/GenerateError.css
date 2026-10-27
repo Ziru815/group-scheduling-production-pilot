@@ -1,0 +1,24 @@
+.generr {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.generr--retry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.generr__retry {
+  flex: none;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--color-danger);
+  font-weight: 600;
+  text-decoration: underline;
+}

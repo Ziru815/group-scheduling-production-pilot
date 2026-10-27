@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: group_scheduler
+      POSTGRES_USER: group_scheduler
+      POSTGRES_PASSWORD: change_me
+    ports: ["5432:5432"]
+    volumes: ["group_scheduler_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U group_scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  group_scheduler_data:
+

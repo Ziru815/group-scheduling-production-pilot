@@ -1,0 +1,76 @@
+.created {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.created__card {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.created__tick {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.created__title {
+  font-size: var(--text-lg);
+}
+
+.created__name {
+  font-weight: 600;
+}
+
+.created__meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.created__share {
+  display: grid;
+  gap: var(--space-2);
+}
+
+
+
+
+
+.created__actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.created__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-target);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.created__textbtn {
+  min-height: var(--tap-target);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}

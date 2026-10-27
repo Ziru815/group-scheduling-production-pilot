@@ -1,0 +1,1 @@
+from .application_services import RecommendationService as CandidateGenerationService

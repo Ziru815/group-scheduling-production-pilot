@@ -1,0 +1,157 @@
+.ropt {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.ropt--top {
+  border-color: var(--color-primary);
+}
+
+.ropt--expanded {
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.08);
+}
+
+.ropt__summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.ropt__main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.ropt__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-bottom: 2px;
+}
+
+.ropt__tag {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.ropt__tag--ok {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ropt__tag--warn {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+}
+
+.ropt__venue {
+  font-weight: 600;
+}
+
+.ropt__when,
+.ropt__facts {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.ropt__score {
+  display: grid;
+  justify-items: center;
+  flex: none;
+  min-width: 48px;
+}
+
+.ropt__score-num {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+
+.ropt__score--partial .ropt__score-num {
+  color: var(--color-text-muted);
+}
+
+.ropt__score-label {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.ropt__details {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.ropt__why {
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.ropt__subhead {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.ropt__people {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ropt__person {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+}
+
+.ropt__person--absent {
+  color: var(--color-text-muted);
+}
+
+.ropt__travel {
+  flex: none;
+  text-align: right;
+  color: var(--color-text-muted);
+}
+
+.ropt__travel--na {
+  color: var(--color-warning-text);
+  font-weight: 600;
+}
+
+.ropt__venueinfo {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.ropt__venueinfo a {
+  font-weight: 600;
+}
+
+.ropt__breakdown {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

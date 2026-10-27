@@ -1,0 +1,1 @@
+"""Group Scheduling backend application."""

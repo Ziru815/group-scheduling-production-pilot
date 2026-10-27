@@ -1,0 +1,45 @@
+/* Design tokens taken from the SRS Figure 1 storyboard (muted green on warm off-white). */
+:root {
+  --color-bg: #f4f2ec;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eceae3;
+  --color-border: #dedbd2;
+  --color-text: #1f2420;
+  --color-text-muted: #6b6f69;
+  --color-primary: #2f5d46;
+  --color-primary-hover: #264c39;
+  --color-primary-contrast: #ffffff;
+  --color-primary-soft: #dbe7df;
+  --color-warning-soft: #f6e6c8;
+  --color-warning-text: #7a5512;
+  --color-info-soft: #e3e3f3;
+  --color-info-text: #3d3d7a;
+  --color-danger: #b3261e;
+  --color-danger-soft: #f9dedc;
+  --color-busy-a: #efc9c9;
+  --color-busy-b: #f9e7e7;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06);
+
+  --header-height: 56px;
+  --nav-height: 64px;
+  --content-max-width: 480px;
+  --tap-target: 44px;
+}

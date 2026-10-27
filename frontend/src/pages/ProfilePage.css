@@ -1,0 +1,36 @@
+.profile {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.profile__card {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.profile__name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.profile__email {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.profile__error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.profile__signout {
+  min-height: var(--tap-target);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  font-weight: 600;
+}

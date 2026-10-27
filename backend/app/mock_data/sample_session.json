@@ -1,0 +1,45 @@
+{
+  "_note": "Mock Session for development, tests and demos. People are invented. Starting locations are MRT stations, not home addresses, so no real address appears in the repository (NFR-13). Times are Singapore time.",
+  "now": "2026-10-25T10:00:00+08:00",
+  "session": {
+    "session_id": "s-demo-football",
+    "activity_type_id": "football",
+    "date_range_start": "2026-11-07T08:00:00+08:00",
+    "date_range_end": "2026-11-08T22:00:00+08:00",
+    "duration_minutes": 120,
+    "minimum_attendee_threshold": 5,
+    "travel_objective": "MIN_MAX_INDIVIDUAL",
+    "attendance_weight_percent": 60,
+    "timezone": "Asia/Singapore"
+  },
+  "places": [
+    {"label": "Ang Mo Kio MRT Station", "postal_code": "569811", "lat": 1.3700, "lng": 103.8496},
+    {"label": "Bishan MRT Station", "postal_code": "579827", "lat": 1.3510, "lng": 103.8485},
+    {"label": "Toa Payoh MRT Station", "postal_code": "319758", "lat": 1.3326, "lng": 103.8474},
+    {"label": "Tampines MRT Station", "postal_code": "529538", "lat": 1.3534, "lng": 103.9452},
+    {"label": "Jurong East MRT Station", "postal_code": "609690", "lat": 1.3332, "lng": 103.7423},
+    {"label": "Punggol MRT Station", "postal_code": "828868", "lat": 1.4052, "lng": 103.9024},
+    {"label": "Woodlands MRT Station", "postal_code": "738343", "lat": 1.4370, "lng": 103.7865},
+    {"label": "Nanyang Technological University", "postal_code": "639798", "lat": 1.3483, "lng": 103.6831}
+  ],
+  "participants": [
+    {"participant_id": "p-alex", "display_name": "Alex (Organiser)", "record_status": "ACTIVE", "place": "Bishan MRT Station", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-07T09:00:00+08:00", "2026-11-07T13:00:00+08:00"], ["2026-11-08T14:00:00+08:00", "2026-11-08T18:00:00+08:00"]]},
+    {"participant_id": "p-bea", "display_name": "Bea", "record_status": "ACTIVE", "place": "Ang Mo Kio MRT Station", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-07T08:00:00+08:00", "2026-11-07T12:00:00+08:00"], ["2026-11-08T15:00:00+08:00", "2026-11-08T20:00:00+08:00"]]},
+    {"participant_id": "p-chen", "display_name": "Chen", "record_status": "ACTIVE", "place": "Toa Payoh MRT Station", "transport_mode": "DRIVE",
+     "intervals": [["2026-11-07T10:00:00+08:00", "2026-11-07T14:00:00+08:00"], ["2026-11-08T14:00:00+08:00", "2026-11-08T19:00:00+08:00"]],
+     "busy": [["2026-11-08T16:30:00+08:00", "2026-11-08T17:30:00+08:00"]]},
+    {"participant_id": "p-divya", "display_name": "Divya", "record_status": "ACTIVE", "place": "Tampines MRT Station", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-07T09:00:00+08:00", "2026-11-07T12:00:00+08:00"], ["2026-11-08T14:00:00+08:00", "2026-11-08T18:00:00+08:00"]]},
+    {"participant_id": "p-elias", "display_name": "Elias", "record_status": "ACTIVE", "place": "Jurong East MRT Station", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-07T09:30:00+08:00", "2026-11-07T13:00:00+08:00"], ["2026-11-08T13:00:00+08:00", "2026-11-08T17:00:00+08:00"]]},
+    {"participant_id": "p-farah", "display_name": "Farah", "record_status": "ACTIVE", "place": "Punggol MRT Station", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-07T08:00:00+08:00", "2026-11-07T11:30:00+08:00"], ["2026-11-08T14:00:00+08:00", "2026-11-08T18:00:00+08:00"]]},
+    {"participant_id": "p-gopal", "display_name": "Gopal", "record_status": "ACTIVE", "place": "Nanyang Technological University", "transport_mode": "PUBLIC_TRANSPORT",
+     "intervals": [["2026-11-08T14:00:00+08:00", "2026-11-08T18:00:00+08:00"]]},
+    {"participant_id": "p-huimin", "display_name": "Hui Min", "record_status": "WITHDRAWN", "place": "Woodlands MRT Station", "transport_mode": "DRIVE",
+     "intervals": [["2026-11-07T08:00:00+08:00", "2026-11-08T22:00:00+08:00"]]},
+    {"participant_id": "p-ivan", "display_name": "Ivan", "record_status": null}
+  ]
+}

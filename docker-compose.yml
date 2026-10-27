@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: group_scheduler
+      POSTGRES_USER: group_scheduler
+      POSTGRES_PASSWORD: change_me
+    volumes:
+      - group_scheduler_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U group_scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://group_scheduler:change_me@db:5432/group_scheduler
+      AUTO_CREATE_TABLES: "true"
+      DEBUG_AUTH_ENABLED: "true"
+      USE_MOCK_PROVIDERS: "true"
+      FRONTEND_BASE_URL: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173
+      APP_SESSION_SECRET: local-demo-secret-change-before-deployment
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["sh", "-c", "python -m scripts.seed_demo && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_DEMO_AUTH: "true"
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  group_scheduler_data:
+

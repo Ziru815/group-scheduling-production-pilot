@@ -1,0 +1,21 @@
+{
+  "_note": "Mock Venue catalogue for development and tests. Names are public facilities; coordinates are approximate; group sizes and booking lead times are invented for testing FR-D4 and FR-D5. Replace with the data.gov.sg loader (FR-C3) for real data. Mall data source is still TBD-5.",
+  "venues": [
+    {"venue_id": "v-bishan-stadium", "name": "Bishan Stadium", "category": "SPORTS_FACILITY", "lat": 1.3546, "lng": 103.8510, "address": "5 Bishan Street 14", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-toa-payoh-stadium", "name": "Toa Payoh Stadium", "category": "SPORTS_FACILITY", "lat": 1.3305, "lng": 103.8509, "address": "297 Lorong 6 Toa Payoh", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-toa-payoh-hall", "name": "Toa Payoh Sports Hall", "category": "SPORTS_FACILITY", "lat": 1.3312, "lng": 103.8516, "address": "301 Lorong 6 Toa Payoh", "activity_types": ["badminton", "basketball"], "min_group_size": 2, "optimal_group_size": 4, "advance_booking_lead_minutes": 120},
+    {"venue_id": "v-jurong-east-sc", "name": "Jurong East Sports Centre", "category": "SPORTS_FACILITY", "lat": 1.3466, "lng": 103.7287, "address": "21 Jurong East Street 31", "activity_types": ["football", "badminton"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-bedok-stadium", "name": "Bedok Stadium", "category": "SPORTS_FACILITY", "lat": 1.3247, "lng": 103.9338, "address": "1 Bedok North Street 2", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-ycks", "name": "Yio Chu Kang Stadium", "category": "SPORTS_FACILITY", "lat": 1.3818, "lng": 103.8455, "address": "200 Ang Mo Kio Avenue 9", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-cck-stadium", "name": "Choa Chu Kang Stadium", "category": "SPORTS_FACILITY", "lat": 1.3911, "lng": 103.7480, "address": "1 Choa Chu Kang Street 53", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-hougang-stadium", "name": "Hougang Stadium", "category": "SPORTS_FACILITY", "lat": 1.3708, "lng": 103.8925, "address": "90 Hougang Avenue 4", "activity_types": ["football"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 1440},
+    {"venue_id": "v-tampines-hub", "name": "Our Tampines Hub Field", "category": "SPORTS_FACILITY", "lat": 1.3530, "lng": 103.9400, "address": "1 Tampines Walk", "activity_types": ["football", "badminton", "basketball"], "min_group_size": 6, "optimal_group_size": 14, "advance_booking_lead_minutes": 4320},
+    {"venue_id": "v-bamk-park", "name": "Bishan-Ang Mo Kio Park", "category": "PARK", "lat": 1.3626, "lng": 103.8433, "address": "1384 Ang Mo Kio Avenue 1", "activity_types": ["football", "picnic"]},
+    {"venue_id": "v-east-coast-park", "name": "East Coast Park", "category": "PARK", "lat": 1.3008, "lng": 103.9122, "address": "East Coast Park Service Road", "activity_types": ["football", "picnic"]},
+    {"venue_id": "v-west-coast-park", "name": "West Coast Park", "category": "PARK", "lat": 1.2944, "lng": 103.7660, "address": "West Coast Ferry Road", "activity_types": ["picnic"]},
+    {"venue_id": "v-pasir-ris-park", "name": "Pasir Ris Park", "category": "PARK", "lat": 1.3812, "lng": 103.9530, "address": "Pasir Ris Central", "activity_types": ["picnic"]},
+    {"venue_id": "v-plaza-sing", "name": "Plaza Singapura", "category": "MALL", "lat": 1.3006, "lng": 103.8450, "address": "68 Orchard Road", "activity_types": ["board-games", "bowling"]},
+    {"venue_id": "v-jurong-point", "name": "Jurong Point", "category": "MALL", "lat": 1.3398, "lng": 103.7065, "address": "1 Jurong West Central 2", "activity_types": ["board-games", "bowling"]},
+    {"venue_id": "v-tampines-mall", "name": "Tampines Mall", "category": "MALL", "lat": 1.3525, "lng": 103.9447, "address": "4 Tampines Central 5", "activity_types": ["board-games"]}
+  ]
+}

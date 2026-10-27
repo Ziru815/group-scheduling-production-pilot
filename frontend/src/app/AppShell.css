@@ -1,0 +1,116 @@
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-top: env(safe-area-inset-top);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shell__header-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--header-height);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-2);
+}
+
+.shell__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__back,
+.shell__back-spacer {
+  flex: none;
+  width: var(--tap-target);
+  height: var(--tap-target);
+}
+
+.shell__back {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.shell__back:hover {
+  background: var(--color-surface-muted);
+}
+
+.shell__main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-4);
+  /* Keep content clear of the fixed bottom nav. */
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + var(--space-4));
+}
+
+.shell__nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.shell__nav-inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: var(--nav-height);
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+.shell__nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.shell__nav-link--active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Demo build only. */
+.shell__demo {
+  max-width: var(--content-max-width);
+  margin: var(--space-2) auto 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+@media (max-width: 512px) {
+  .shell__demo {
+    margin-inline: var(--space-4);
+  }
+}

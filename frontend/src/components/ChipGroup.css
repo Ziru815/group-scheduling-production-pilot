@@ -1,0 +1,60 @@
+.chips {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chips__legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.chips__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  position: relative;
+}
+
+/* Visually hidden but still focusable and checkable. */
+.chip__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.chip__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.chip__input:checked + .chip__label {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.chip__input:focus-visible + .chip__label {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.chips[aria-invalid='true'] .chip__label {
+  border-color: var(--color-danger);
+}
