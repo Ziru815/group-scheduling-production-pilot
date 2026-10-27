@@ -4,20 +4,37 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from collections.abc import Sequence
 from datetime import datetime, timezone
 import os
 
 from sqlmodel import Session, create_engine
 
-from app.adapters.data_gov_sg_adapter import DataGovSgAdapter
+from app.adapters.data_gov_sg_adapter import DataGovSgAdapter, SourceFacilityRow
 from app.adapters.onemap import OneMapAdapter
 from app.core.config import settings
 from app.services.venue_catalog import (
     VenueCatalogSyncService,
+    NormalizedVenue,
     enrich_venue_addresses,
     load_verified_venue_allowlist,
     normalize_facilities,
 )
+
+
+def normalization_counts(
+    source_rows: Sequence[SourceFacilityRow],
+    normalized: Sequence[NormalizedVenue],
+) -> dict[str, int]:
+    recognized_rows = sum(
+        bool(normalize_facilities((source_row,))) for source_row in source_rows
+    )
+    return {
+        "source_rows": len(source_rows),
+        "recognized_rows": recognized_rows,
+        "rejected_rows": len(source_rows) - recognized_rows,
+        "normalized_venues": len(normalized),
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,15 +48,18 @@ def parse_args() -> argparse.Namespace:
 async def run(*, apply: bool) -> None:
     source = DataGovSgAdapter(base_url=settings.data_gov_sg_base_url)
     try:
-        normalized = normalize_facilities(await source.load_facilities())
+        source_rows = await source.load_facilities()
+        normalized = normalize_facilities(source_rows)
     finally:
         await source.aclose()
 
     allowlist = load_verified_venue_allowlist()
     verified_count = sum(item.source_key in allowlist for item in normalized)
+    counts = normalization_counts(source_rows, normalized)
     print(
-        f"normalized={len(normalized)} verified={verified_count} "
-        f"unverified={len(normalized) - verified_count}"
+        " ".join(f"{name}={value}" for name, value in counts.items())
+        + f" verified_venues={verified_count} "
+        f"unverified_venues={len(normalized) - verified_count}"
     )
     if not apply:
         return

@@ -25,6 +25,7 @@ from app.services.venue_catalog import (
     normalize_facilities,
     venue_source_key,
 )
+from scripts.sync_venues import normalization_counts
 
 
 ALLOWLIST_PATH = (
@@ -100,6 +101,24 @@ def test_normalizer_ignores_unknown_facilities():
         ]
     )
     assert venue.activities == ("Badminton",)
+
+
+def test_normalization_counts_distinguish_rows_from_collapsed_venues():
+    rows = [
+        source_row(1, sports_facility="Badminton Court"),
+        source_row(2, sports_facility="Basketball Court"),
+        source_row(3, sports_facility="Unknown Facility"),
+        source_row(4, postal_code="-"),
+    ]
+
+    counts = normalization_counts(rows, normalize_facilities(rows))
+
+    assert counts == {
+        "source_rows": 4,
+        "recognized_rows": 2,
+        "rejected_rows": 2,
+        "normalized_venues": 1,
+    }
 
 
 def test_source_key_is_stable_across_row_order():
