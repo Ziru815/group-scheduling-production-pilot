@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.controllers import router
 from app.controllers.web_api import router as web_router
 from app.core.config import settings
-from app.core.database import create_db_and_tables
+from app.core.database import create_db_and_tables, database_is_ready
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings.validate_runtime()
     if settings.auto_create_tables: create_db_and_tables()
     if settings.debug_auth_enabled: logger.warning("DEBUG authentication is enabled; never deploy this setting")
     yield
@@ -50,6 +51,13 @@ async def validation_error(_: Request, exc: RequestValidationError):
 
 @app.get("/health", tags=["system"])
 def health(): return {"status": "ok", "service": settings.app_name}
+
+
+@app.get("/ready", tags=["system"])
+def ready():
+    if not database_is_ready():
+        raise HTTPException(503, "Database is unavailable")
+    return {"status": "ready"}
 
 
 def _error_code(status_code: int, detail: str) -> str:

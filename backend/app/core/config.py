@@ -1,9 +1,12 @@
 from functools import lru_cache
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    app_environment: Literal["development", "test", "production"] = "development"
     app_name: str = "Group Scheduling API"
     api_prefix: str = "/api/v1"
     database_url: str = "sqlite:///./group_scheduling.db"
@@ -33,6 +36,28 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [item.strip() for item in self.allowed_origins.split(",") if item.strip()]
+
+    def validate_runtime(self) -> None:
+        if self.app_environment != "production":
+            return
+        if self.app_session_secret == "change-me-before-deployment" or len(self.app_session_secret) < 32:
+            raise ValueError("APP_SESSION_SECRET must be a non-default value of at least 32 characters")
+        if not self.database_url.startswith("postgresql+psycopg://"):
+            raise ValueError("DATABASE_URL must use postgresql+psycopg in production")
+        if self.auto_create_tables:
+            raise ValueError("AUTO_CREATE_TABLES must be false in production")
+        if self.debug_auth_enabled:
+            raise ValueError("DEBUG_AUTH_ENABLED must be false in production")
+        if self.use_mock_providers:
+            raise ValueError("USE_MOCK_PROVIDERS must be false in production")
+        if not self.session_cookie_secure:
+            raise ValueError("SESSION_COOKIE_SECURE must be true in production")
+        if not self.google_client_id:
+            raise ValueError("GOOGLE_CLIENT_ID is required in production")
+        if not self.google_client_secret:
+            raise ValueError("GOOGLE_CLIENT_SECRET is required in production")
+        if not self.onemap_token and not (self.onemap_email and self.onemap_password):
+            raise ValueError("ONEMAP_TOKEN or ONEMAP_EMAIL and ONEMAP_PASSWORD are required in production")
 
 
 @lru_cache
