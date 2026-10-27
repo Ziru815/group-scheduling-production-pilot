@@ -52,13 +52,15 @@ The application accepts Railway's standard `postgresql://` reference and selects
 
 ## 4. Configure Google OAuth
 
-In the Google Cloud OAuth client, add exactly this authorized redirect URI:
+Follow `docs/runbooks/google-login-smoke-test.md` for the complete Google Cloud and three-account verification procedure. In the Google Cloud OAuth web client, add exactly this authorized redirect URI:
 
 ```text
 https://<generated-domain>/api/auth/google/callback
 ```
 
-Add the generated origin to the OAuth consent screen's authorized JavaScript origins if the console requests it. Use test users while the consent screen remains in testing. A mismatch in scheme, host, path, or trailing slash causes Google to reject the login.
+Add the generated HTTPS origin under authorized JavaScript origins. Use named team accounts as test users while the app audience remains in testing. A mismatch in scheme, host, path, case, or trailing slash causes Google to reject the login.
+
+Sign-in requests only `openid email profile`; do not add Calendar scopes to this OAuth client flow and do not configure offline access. Keep the client secret only in Railway. If it appears in source, logs, screenshots, chat, or demo footage, rotate it in Google Cloud and update Railway before continuing.
 
 ## 5. Deployment and migration order
 

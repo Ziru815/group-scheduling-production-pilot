@@ -1,4 +1,4 @@
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 from fastapi.testclient import TestClient
 import pytest
 
@@ -7,7 +7,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.controllers.web_api import get_google_oauth_client
 from app.main import app
-from app.models import ActivityType, SupportStatus, Venue, VenueActivity, VenueCategory
+from app.models import ActivityType, SupportStatus, UserAccount, Venue, VenueActivity, VenueCategory
 
 
 def test_frontend_backend_recommender_round_trip(tmp_path):
@@ -332,4 +332,38 @@ def test_legacy_google_id_token_endpoint_is_removed(tmp_path):
         assert response.status_code == 404
     finally:
         restore_oauth_test_settings(original)
+
+
+def test_production_denies_debug_auth_and_starts_real_google_flow(tmp_path, monkeypatch):
+    fake = FakeGoogleOAuthClient()
+    monkeypatch.setattr(settings, "app_environment", "production")
+    monkeypatch.setattr(settings, "database_url", "postgresql+psycopg://app:secret@db/group")
+    monkeypatch.setattr(settings, "auto_create_tables", False)
+    monkeypatch.setattr(settings, "app_session_secret", "a-production-signing-secret-over-32-characters")
+    monkeypatch.setattr(settings, "debug_auth_enabled", False)
+    monkeypatch.setattr(settings, "use_mock_providers", False)
+    monkeypatch.setattr(settings, "session_cookie_secure", True)
+    monkeypatch.setattr(settings, "frontend_base_url", "https://scheduler.example")
+    monkeypatch.setattr(settings, "google_client_id", "client.apps.googleusercontent.com")
+    monkeypatch.setattr(settings, "google_client_secret", "google-secret")
+    monkeypatch.setattr(settings, "onemap_token", "onemap-token")
+
+    database_path = tmp_path / "oauth-web.db"
+    with oauth_test_client(tmp_path, fake) as client:
+        users = client.get("/api/dev/users")
+        sign_in = client.post("/api/dev/sign-in", json={"userId": "demo-organiser"})
+        google = client.get("/api/auth/google/login", follow_redirects=False)
+
+    assert users.status_code == 404
+    assert sign_in.status_code == 404
+    assert google.status_code == 302
+    assert fake.begin_paths == ["/signin"]
+    assert settings.session_cookie_name not in google.headers["set-cookie"]
+    with Session(
+        create_engine(
+            f"sqlite:///{database_path}",
+            connect_args={"check_same_thread": False},
+        )
+    ) as db:
+        assert db.exec(select(UserAccount)).all() == []
 
