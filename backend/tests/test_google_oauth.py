@@ -9,6 +9,12 @@ from itsdangerous import URLSafeTimedSerializer
 from app.adapters.google_oauth import GoogleOAuthClient, GoogleOAuthError
 
 
+def test_google_identity_verifier_transport_is_installed():
+    from google.auth.transport import requests as google_requests
+
+    assert google_requests.Request() is not None
+
+
 def decode_transaction(cookie: str):
     serializer = URLSafeTimedSerializer(
         "a-production-signing-secret-over-32-characters",
