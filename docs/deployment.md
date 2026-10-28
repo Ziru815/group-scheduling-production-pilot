@@ -2,6 +2,51 @@
 
 The public pilot uses one Railway application service and one Railway PostgreSQL service in Singapore. The application builds the root `Dockerfile`, serves the React site and FastAPI API on one HTTPS origin, runs Alembic before each release, and exposes `/ready` as the deployment health check.
 
+## Render fallback while Railway sign-ups are paused
+
+The repository also includes `render.yaml` for a temporary Render deployment.
+Use this path only when a new Railway account cannot be created. It preserves
+the same Docker, FastAPI, React, PostgreSQL, OAuth, and provider architecture;
+Railway configuration remains available for a later switch.
+
+The initial Blueprint deliberately selects one free Singapore web service and
+one free Singapore PostgreSQL database. Render's free web service sleeps after
+15 minutes without inbound traffic and can take about one minute to wake. Its
+free PostgreSQL database expires 30 days after creation and has no backups. This
+fits the assessment pilot only if the database is created close to the demo and
+the team exports any required evidence before expiry.
+
+1. Sign in to Render with the GitHub account that can access the private
+   repository. Install Render's GitHub App only for
+   `group-scheduling-production-pilot`.
+2. In Render, create a Blueprint from the private repository, select
+   `feature/production-pilot`, and use the root `render.yaml`.
+3. Confirm that both resources show `Free` and `Singapore` before applying the
+   Blueprint. Stop if any paid plan is selected.
+4. For the first infrastructure-only deploy, enter temporary non-secret values
+   for the prompted URL and provider variables. Use `https://example.invalid`
+   for `FRONTEND_BASE_URL` and `ALLOWED_ORIGINS`, use the corresponding
+   `/api/auth/google/callback` value for `GOOGLE_REDIRECT_URI`, and use
+   `pending-configuration` for the provider credentials. These values only let
+   the container start long enough to obtain its generated domain; Google login
+   and routing are expected to remain unavailable.
+5. Copy the generated `https://...onrender.com` origin. Create the Google OAuth
+   client with that exact JavaScript origin and callback, obtain the real OneMap
+   token, replace all temporary variables in Render, and redeploy.
+6. Verify `/health` and `/ready`, then run the venue dry run and apply from a
+   Render shell or one-off job. Free web services do not include shell access;
+   if that remains unavailable, run the sync locally with a short-lived external
+   database URL and revoke that URL immediately afterward, or temporarily use a
+   paid service only after the billing owner approves it.
+7. Open the site at least two minutes before each rehearsal or presentation so
+   the free instance is awake. Export required evidence and remove both Render
+   resources after grading or before the free database's 30-day expiry.
+
+Because free Render web services do not support pre-deploy commands,
+`backend/scripts/start_production.sh` performs the deployment gate at process
+start. It exits immediately if migration or reference-data seeding fails and
+starts Uvicorn only after both succeed.
+
 Railway's older `railway.toml` Config-as-Code path is deprecated for new services. This repository therefore keeps the supported TypeScript configuration in `.railway/railway.ts`. The configuration pins one replica in Railway's Singapore region, restarts failed processes up to ten times, and preserves secrets that are entered in Railway rather than Git.
 
 ## 1. Create the private source repository
