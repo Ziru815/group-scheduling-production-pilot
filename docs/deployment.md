@@ -36,8 +36,10 @@ the team exports any required evidence before expiry.
 6. Verify `/health` and `/ready`, then run the venue dry run and apply from a
    Render shell or one-off job. Free web services do not include shell access;
    if that remains unavailable, run the sync locally with a short-lived external
-   database URL and revoke that URL immediately afterward, or temporarily use a
-   paid service only after the billing owner approves it.
+   database URL. Temporarily allow only the current operator IP in the database
+   access controls, remove that rule immediately after the sync, and never allow
+   `0.0.0.0/0`. Alternatively, temporarily use a paid service only after the
+   billing owner approves it.
 7. Open the site at least two minutes before each rehearsal or presentation so
    the free instance is awake. Export required evidence and remove both Render
    resources after grading or before the free database's 30-day expiry.
