@@ -17,4 +17,5 @@ export const queryKeys = {
   // The token is Access Data; it lives only in this in-memory cache key.
   invitation: (token: string) => ['invitation', token] as const,
   calendarConnection: ['calendar', 'connection'] as const,
+  calendarSync: (id: Id) => ['sessions', id, 'calendar-sync'] as const,
 }

@@ -16,17 +16,13 @@ from sqlmodel import Session, col, select
 from app.adapters.mock import MockRouter
 from app.adapters.onemap import OneMapAdapter as EngineOneMapAdapter
 from app.core.config import settings
+from app.adapters.ports import CalendarPort
 from app.models import (
     AttendanceSource,
     AvailabilityRecord,
-    CalendarConnection,
-    CalendarEvent,
     CandidateTimeslot,
     Combination,
     CombinationStatus,
-    ConnectionStatus,
-    EventStatus,
-    EventType,
     GenerationStatus,
     IntervalSource,
     Participant,
@@ -61,6 +57,7 @@ from app.recommender.types import (
 )
 from app.services.application_services import _as_utc, _ensure_active, _get_session_or_404
 from app.services.authorization_service import require_organiser
+from app.services.calendar_sync_service import CalendarSyncService
 
 
 def _engine_config() -> RecommenderConfig:
@@ -88,7 +85,12 @@ def _provider():
 
 class IntegratedRecommendationService:
     @staticmethod
-    async def generate(db: Session, user: UserAccount, session_id: UUID):
+    async def generate(
+        db: Session,
+        user: UserAccount,
+        session_id: UUID,
+        calendar_adapter: CalendarPort | None = None,
+    ):
         require_organiser(db, session_id, user)
         item = _get_session_or_404(db, session_id)
         _ensure_active(item)
@@ -111,12 +113,23 @@ class IntegratedRecommendationService:
             db.rollback()
             raise HTTPException(409, "Recommendations became stale while they were generated")
 
-        _persist_result(db, item, result)
+        eligible_slot_ids = _persist_result(db, item, result)
         item.recommendations_source_revision = snapshot_revision
         item.recommendations_run_status = result.status.value
         item.recommendations_generated_at = result.generated_at
         db.add(item)
         db.commit()
+        if calendar_adapter is not None:
+            try:
+                await CalendarSyncService(calendar_adapter).reconcile_holds(
+                    db,
+                    session_id,
+                    eligible_slot_ids,
+                )
+            except Exception:
+                # Calendar is optional. The recommendation snapshot above is
+                # already committed and must remain the successful response.
+                db.rollback()
         return result
 
 
@@ -197,7 +210,7 @@ def _build_request(db: Session, item: SchedulingSession) -> RecommendationReques
     )
 
 
-def _persist_result(db: Session, item: SchedulingSession, result) -> None:
+def _persist_result(db: Session, item: SchedulingSession, result) -> list[UUID]:
     repo = RecommendationRepository(db)
     # Candidate Timeslots are unique by Session and time window. Replace the
     # previous recommendation snapshot as one unit before persisting a new
@@ -282,52 +295,12 @@ def _persist_result(db: Session, item: SchedulingSession, result) -> None:
                 )
             )
 
-    _replace_tentative_holds(db, item, result, slot_rows)
-
-
-def _replace_tentative_holds(db: Session, item: SchedulingSession, result, slot_rows) -> None:
-    old_holds = list(
-        db.exec(
-            select(CalendarEvent).where(
-                CalendarEvent.session_id == item.session_id,
-                CalendarEvent.event_type == EventType.TENTATIVE_HOLD,
-                CalendarEvent.event_status.in_([EventStatus.PENDING, EventStatus.ACTIVE]),
-            )
-        ).all()
-    )
-    for event in old_holds:
-        event.event_status = EventStatus.DELETED
-        db.add(event)
-
     eligible_indexes = {
         combo.timeslot.index
         for combo in result.combinations
         if combo.exclusion_reason is None
     }
-    connections = list(
-        db.exec(
-            select(CalendarConnection)
-            .join(Participant, Participant.participant_id == CalendarConnection.participant_id)
-            .where(
-                Participant.session_id == item.session_id,
-                CalendarConnection.connection_status == ConnectionStatus.CONNECTED,
-            )
-        ).all()
-    )
-    for connection in connections:
-        for index in eligible_indexes:
-            slot = slot_rows[index]
-            db.add(
-                CalendarEvent(
-                    calendar_connection_id=connection.connection_id,
-                    session_id=item.session_id,
-                    candidate_timeslot_id=slot.timeslot_id,
-                    event_type=EventType.TENTATIVE_HOLD,
-                    event_status=EventStatus.ACTIVE if settings.use_mock_providers else EventStatus.ERROR,
-                    provider_event_id=(f"demo-hold:{item.session_id}:{slot.timeslot_id}" if settings.use_mock_providers else None),
-                    last_error=(None if settings.use_mock_providers else "Google Calendar provider is not configured"),
-                )
-            )
+    return [slot_rows[index].timeslot_id for index in sorted(eligible_indexes)]
 
 
 def _aware(value: datetime) -> datetime:

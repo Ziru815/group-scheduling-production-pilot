@@ -28,6 +28,30 @@ def production_settings(**overrides) -> Settings:
     return Settings(_env_file=None, **values)
 
 
+def test_production_calendar_feature_requires_redirect_and_credential_key():
+    with pytest.raises(ValueError, match="GOOGLE_CALENDAR_REDIRECT_URI"):
+        production_settings(
+            google_calendar_enabled=True,
+            google_calendar_redirect_uri=None,
+            google_calendar_credential_key=None,
+        ).validate_runtime()
+
+    with pytest.raises(ValueError, match="GOOGLE_CALENDAR_CREDENTIAL_KEY"):
+        production_settings(
+            google_calendar_enabled=True,
+            google_calendar_redirect_uri="https://scheduler.example/api/calendar/google/callback",
+            google_calendar_credential_key=None,
+        ).validate_runtime()
+
+
+def test_production_calendar_feature_can_remain_disabled_without_calendar_secrets():
+    production_settings(
+        google_calendar_enabled=False,
+        google_calendar_redirect_uri=None,
+        google_calendar_credential_key=None,
+    ).validate_runtime()
+
+
 def test_production_rejects_default_secret():
     settings = production_settings(app_session_secret="change-me-before-deployment")
 

@@ -12,8 +12,8 @@ type Props = {
   onBusy: (busy: TimeInterval[]) => void
   /** Called right before a full-page redirect, to stash unsaved selections. */
   beforeRedirect: () => void
-  /** True when we just came back from Google having declined (FR-B8.1). */
-  declined: boolean
+  /** Recoverable result marker returned by the separate Calendar consent flow. */
+  oauthResult: 'connected' | 'declined' | 'unavailable' | 'wrong-account' | 'missing-scopes' | null
   disabled?: boolean
 }
 
@@ -21,12 +21,20 @@ type Props = {
  * Optional "Import busy times from Google Calendar" (FR-B8). Medium priority:
  * manual entry always works without it (FR-B8.1). Free/busy only (NFR-14).
  */
-export function CalendarImport({ sessionId, returnPath, onBusy, beforeRedirect, declined, disabled }: Props) {
+const RETURN_MESSAGES: Record<Exclude<Props['oauthResult'], null>, { tone: 'ok' | 'warn'; text: string }> = {
+  connected: { tone: 'ok', text: 'Google Calendar is connected. Import busy times when you’re ready.' },
+  declined: { tone: 'warn', text: "Calendar access wasn't granted. You can still mark your times by hand." },
+  unavailable: { tone: 'warn', text: "Google Calendar couldn't be connected right now. Try again or mark your times by hand." },
+  'wrong-account': { tone: 'warn', text: 'Connect the same Google account you used to sign in, or keep entering times by hand.' },
+  'missing-scopes': { tone: 'warn', text: 'The required Calendar permissions were not granted. Reconnect to try again, or enter times by hand.' },
+}
+
+export function CalendarImport({ sessionId, returnPath, onBusy, beforeRedirect, oauthResult, disabled }: Props) {
   const connection = useCalendarConnection()
   const connect = useConnectCalendar()
   const importBusy = useImportCalendarBusy(sessionId)
   const [message, setMessage] = useState<{ tone: 'ok' | 'warn'; text: string } | null>(
-    declined ? { tone: 'warn', text: "Calendar access wasn't granted. You can still mark your times by hand." } : null,
+    oauthResult ? RETURN_MESSAGES[oauthResult] : null,
   )
 
   function runImport() {

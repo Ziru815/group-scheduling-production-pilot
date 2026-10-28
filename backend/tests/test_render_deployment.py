@@ -161,3 +161,16 @@ def test_render_blueprint_keeps_production_safe_values_and_secrets_out_of_git() 
         "ONEMAP_TOKEN",
     ):
         assert f"key: {key}\n        sync: false" in blueprint
+
+
+def test_render_blueprint_gates_calendar_and_keeps_calendar_secrets_external() -> None:
+    blueprint = RENDER_BLUEPRINT.read_text(encoding="utf-8")
+
+    assert 'key: GOOGLE_CALENDAR_ENABLED\n        value: "false"' in blueprint
+    assert "key: GOOGLE_CALENDAR_REDIRECT_URI\n        sync: false" in blueprint
+    assert "key: GOOGLE_CALENDAR_CREDENTIAL_KEY\n        sync: false" in blueprint
+    assert (
+        "key: GOOGLE_CALENDAR_OAUTH_TRANSACTION_COOKIE_NAME\n"
+        "        value: group_scheduler_calendar_oauth"
+    ) in blueprint
+    assert "fernet" not in blueprint.lower()

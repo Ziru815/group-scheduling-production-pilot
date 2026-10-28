@@ -33,6 +33,25 @@ const STATUS_COPY: Record<CalendarConnectionStatus, { label: string; tone: 'ok' 
   },
 }
 
+const RETURN_COPY: Record<string, { label: string; tone: 'ok' | 'muted' | 'warn'; body: string }> = {
+  declined: STATUS_COPY.DECLINED,
+  unavailable: {
+    label: 'Connection unavailable',
+    tone: 'warn',
+    body: "Google Calendar couldn't be connected right now. Try again later; manual availability still works.",
+  },
+  'wrong-account': {
+    label: 'Different Google account',
+    tone: 'warn',
+    body: 'Reconnect using the same Google account you use to sign in to Group Scheduler.',
+  },
+  'missing-scopes': {
+    label: 'Permissions incomplete',
+    tone: 'warn',
+    body: 'The required Calendar permissions were not granted. Reconnect to try again.',
+  },
+}
+
 /**
  * Google Calendar connection (FR-B8). Separate from Google sign-in, and fully
  * optional: manual entry always works (FR-B8.1). Free/busy only (NFR-14).
@@ -43,10 +62,10 @@ export function CalendarSection() {
   const disconnect = useDisconnectCalendar()
   const [params] = useSearchParams()
   const [confirming, setConfirming] = useState(false)
-  const justDeclined = params.get('calendar') === 'declined'
+  const returnCopy = RETURN_COPY[params.get('calendar') ?? '']
 
   const status: CalendarConnectionStatus | undefined = connection.data?.status
-  const copy = status ? STATUS_COPY[justDeclined && status !== 'CONNECTED' ? 'DECLINED' : status] : null
+  const copy = status ? (status === 'CONNECTED' ? STATUS_COPY.CONNECTED : returnCopy ?? STATUS_COPY[status]) : null
   const error = connection.error ?? connect.error ?? disconnect.error
 
   return (

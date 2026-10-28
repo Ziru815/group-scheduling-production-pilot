@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 import { isApiError } from '../api/client'
+import { useRetryCalendarSync } from '../api/hooks/calendar'
 import { useMyResponse } from '../api/hooks/myResponse'
 import { useSession } from '../api/hooks/sessions'
 import type { SessionDetail } from '../api/types'
@@ -46,6 +47,7 @@ export function ConfirmedPage() {
 
 function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; myParticipantId: string | null }) {
   const plan = session.confirmed
+  const retryCalendar = useRetryCalendarSync(session.id)
 
   if (session.status === 'CANCELLED') {
     return (
@@ -87,6 +89,7 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
   }
 
   const going = myParticipantId !== null && plan.attendees.some((a) => a.participantId === myParticipantId)
+  const calendarSync = retryCalendar.data ?? plan.calendarSync
 
   return (
     <div className="confirmed">
@@ -140,6 +143,36 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
         <strong>The venue isn't booked yet.</strong> Booking it is up to the group, through the venue's own booking
         channel. Live availability isn't guaranteed.
       </p>
+
+      <section className="confirmed__calendar" aria-labelledby="confirmed-calendar">
+        <h3 className="confirmed__subhead" id="confirmed-calendar">
+          Google Calendar
+        </h3>
+        <p>
+          {calendarSync.failed > 0
+            ? `The plan is confirmed, but ${calendarSync.failed} calendar ${calendarSync.failed === 1 ? 'sync needs' : 'syncs need'} another try.`
+            : calendarSync.succeeded > 0
+              ? `${calendarSync.succeeded} ${calendarSync.succeeded === 1 ? 'calendar is' : 'calendars are'} up to date.`
+              : 'The plan is confirmed. No Calendar changes were needed.'}
+          {calendarSync.notConnected > 0 &&
+            ` ${calendarSync.notConnected} ${calendarSync.notConnected === 1 ? 'person does' : 'people do'} not have Google Calendar connected.`}
+        </p>
+        {retryCalendar.isError && (
+          <p className="confirmed__calendar-error" role="alert">
+            {retryCalendar.error.message}
+          </p>
+        )}
+        {calendarSync.canRetry && (
+          <button
+            type="button"
+            className="confirmed__calendar-retry"
+            disabled={retryCalendar.isPending}
+            onClick={() => retryCalendar.mutate()}
+          >
+            {retryCalendar.isPending ? 'Retrying…' : 'Retry calendar sync'}
+          </button>
+        )}
+      </section>
 
       <p className="confirmed__meta">
         Confirmed by {session.myRole === 'ORGANISER' ? 'you' : session.organiserName} on{' '}

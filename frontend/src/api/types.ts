@@ -114,6 +114,7 @@ export type ApiErrorCode =
   | 'RECOMMENDATIONS_STALE' // 409: confirm attempted on outdated results
   | 'COMBINATION_NOT_FEASIBLE' // 409
   | 'CALENDAR_NOT_CONNECTED' // 409
+  | 'SESSION_NOT_CONFIRMED' // 409: Calendar sync retry before confirmation
   | 'EXTERNAL_SERVICE_UNAVAILABLE' // 503: provider down; client may retry (NFR-3)
   | 'NOT_MOCKED' // 501: only returned by the MSW catch-all
   | 'NETWORK_ERROR' // client-side: request never reached the server
@@ -173,6 +174,13 @@ export interface VenueSummary {
 }
 
 /** The Organiser's final choice (FR-E4, FR-E5). */
+export interface CalendarSyncSummary {
+  succeeded: number
+  failed: number
+  notConnected: number
+  canRetry: boolean
+}
+
 export interface ConfirmedPlan {
   combinationId: Id
   venue: VenueSummary
@@ -181,6 +189,8 @@ export interface ConfirmedPlan {
   /** Display names only (FR-E3, NFR-13). */
   attendees: { participantId: Id; displayName: string }[]
   confirmedAt: IsoDateTime
+  /** Best-effort Google Calendar result; confirmation itself always succeeds first. */
+  calendarSync: CalendarSyncSummary
 }
 
 /** One row on "Your sessions" (§3.1). */

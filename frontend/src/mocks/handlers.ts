@@ -16,6 +16,7 @@ import type {
   ApiErrorCode,
   CalendarBusyResponse,
   CalendarConnection,
+  CalendarSyncSummary,
   ConfirmPlanRequest,
   CreateSessionRequest,
   CreateSessionResponse,
@@ -131,6 +132,21 @@ function invitationUrl(s: MockSession) {
   return `${pageOrigin()}/join/${s.invitationToken}`
 }
 
+function calendarSyncSummary(s: MockSession, me: MockParticipant): CalendarSyncSummary {
+  const targets = me.role === 'ORGANISER' ? membersOf(s.id) : [me]
+  const failedIds = new Set(s.calendarSyncFailedUserIds ?? [])
+  let succeeded = 0
+  let failed = 0
+  let notConnected = 0
+  for (const participant of targets) {
+    const user = db.users.find((candidate) => candidate.id === participant.userId)
+    if (user?.calendar !== 'CONNECTED') notConnected += 1
+    else if (failedIds.has(participant.userId)) failed += 1
+    else succeeded += 1
+  }
+  return { succeeded, failed, notConnected, canRetry: failed > 0 }
+}
+
 function newToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(18))
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -182,7 +198,9 @@ function toDetail(s: MockSession, me: MockParticipant): SessionDetail {
     isClosed: isClosed(s),
     recommendationsStale: s.recommendationsStale,
     hasRecommendations: s.recommendations !== null,
-    confirmed: s.confirmed,
+    confirmed: s.confirmed
+      ? { ...s.confirmed, calendarSync: calendarSyncSummary(s, me) }
+      : null,
   }
 }
 
@@ -732,6 +750,7 @@ export const handlers = [
         end: chosen.end,
         attendees: chosen.attendees.map((a) => ({ participantId: a.participantId, displayName: a.displayName })),
         confirmedAt: nowIso(session.timezone),
+        calendarSync: calendarSyncSummary(session, me),
       }
       return HttpResponse.json<SessionDetail>(toDetail(session, me))
     }),
@@ -748,6 +767,24 @@ export const handlers = [
     authed(({ user }) => {
       user.calendar = 'DISCONNECTED'
       return new HttpResponse(null, { status: 204 })
+    }),
+  ),
+
+  http.post(
+    '*/api/sessions/:id/calendar-sync',
+    authed(({ user, params }) => {
+      const r = loadForMember(params.id, user)
+      if (!r.ok) return r.error
+      if (r.session.status !== 'CONFIRMED' || !r.session.confirmed) {
+        return fail(409, 'SESSION_NOT_CONFIRMED', 'Confirm the plan before syncing calendars.')
+      }
+      const permitted = r.me.role === 'ORGANISER'
+        ? new Set(membersOf(r.session.id).map((participant) => participant.userId))
+        : new Set([r.me.userId])
+      r.session.calendarSyncFailedUserIds = (r.session.calendarSyncFailedUserIds ?? []).filter(
+        (userId) => !permitted.has(userId),
+      )
+      return HttpResponse.json<CalendarSyncSummary>(calendarSyncSummary(r.session, r.me))
     }),
   ),
 
@@ -806,7 +843,12 @@ function bootstrap() {
         end: top.end,
         attendees: top.attendees.map((a) => ({ participantId: a.participantId, displayName: a.displayName })),
         confirmedAt: zonedToIso('2026-10-15', 20 * 60, football.timezone),
+        calendarSync: { succeeded: 0, failed: 0, notConnected: 0, canRetry: false },
       }
+      football.calendarSyncFailedUserIds = membersOf(football.id)
+        .filter((participant) => db.users.find((user) => user.id === participant.userId)?.calendar === 'CONNECTED')
+        .slice(0, 1)
+        .map((participant) => participant.userId)
     }
   }
 }

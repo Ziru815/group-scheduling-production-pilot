@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
     google_oauth_transaction_cookie_name: str = "google_oauth_transaction"
     google_oauth_transaction_max_age_seconds: int = 600
+    google_calendar_enabled: bool = False
+    google_calendar_redirect_uri: str | None = None
+    google_calendar_credential_key: str | None = None
+    google_calendar_oauth_transaction_cookie_name: str = "google_calendar_oauth_transaction"
     app_session_secret: str = "change-me-before-deployment"
     session_cookie_name: str = "group_scheduler_session"
     session_cookie_secure: bool = False
@@ -67,6 +71,11 @@ class Settings(BaseSettings):
             raise ValueError("GOOGLE_CLIENT_ID is required in production")
         if not self.google_client_secret:
             raise ValueError("GOOGLE_CLIENT_SECRET is required in production")
+        if self.google_calendar_enabled:
+            if not self.google_calendar_redirect_uri:
+                raise ValueError("GOOGLE_CALENDAR_REDIRECT_URI is required when Google Calendar is enabled")
+            if not self.google_calendar_credential_key:
+                raise ValueError("GOOGLE_CALENDAR_CREDENTIAL_KEY is required when Google Calendar is enabled")
         if not self.onemap_token and not (self.onemap_email and self.onemap_password):
             raise ValueError("ONEMAP_TOKEN or ONEMAP_EMAIL and ONEMAP_PASSWORD are required in production")
 

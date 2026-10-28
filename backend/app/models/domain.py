@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, Column, DateTime, Enum as SAEnum, ForeignKey, UniqueConstraint, Uuid
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum as SAEnum, ForeignKey, Text, UniqueConstraint, Uuid
 from sqlmodel import Field, SQLModel
 
 from .enums import *
@@ -241,13 +241,48 @@ class CalendarConnection(SQLModel, table=True):
     credential_reference: Optional[str] = Field(default=None, max_length=500)
 
 
+class CalendarCredential(SQLModel, table=True):
+    __tablename__ = "calendar_credentials"
+    credential_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_account_id: UUID = Field(
+        sa_column=Column(
+            Uuid,
+            ForeignKey("user_accounts.account_id"),
+            nullable=False,
+            unique=True,
+            index=True,
+        )
+    )
+    encrypted_refresh_token: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    google_calendar_id: Optional[str] = Field(default=None, max_length=500)
+    granted_scopes: str = Field(default="", max_length=1000)
+    status: ConnectionStatus = Field(
+        default=ConnectionStatus.DISCONNECTED,
+        sa_column=enum_column(ConnectionStatus, ConnectionStatus.DISCONNECTED),
+    )
+    created_at: datetime = Field(default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False))
+    updated_at: datetime = Field(default_factory=utcnow, sa_column=Column(DateTime(timezone=True), nullable=False))
+    revoked_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
+
+
 class CalendarEvent(SQLModel, table=True):
     __tablename__ = "calendar_events"
-    __table_args__ = (UniqueConstraint("calendar_connection_id", "session_id", "candidate_timeslot_id", "event_type"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "calendar_connection_id",
+            "session_id",
+            "candidate_timeslot_id",
+            "event_type",
+            name="uq_calendar_event_owned_slot_type",
+        ),
+    )
     event_id: UUID = Field(default_factory=uuid4, primary_key=True)
     calendar_connection_id: UUID = Field(foreign_key="calendar_connections.connection_id", index=True)
     session_id: UUID = Field(foreign_key="sessions.session_id", index=True)
-    candidate_timeslot_id: UUID = Field(foreign_key="candidate_timeslots.timeslot_id")
+    candidate_timeslot_id: Optional[UUID] = Field(
+        default=None,
+        sa_column=Column(Uuid, ForeignKey("candidate_timeslots.timeslot_id"), nullable=True),
+    )
     combination_id: Optional[UUID] = Field(default=None, foreign_key="combinations.combination_id")
     event_type: EventType = Field(sa_column=enum_column(EventType, EventType.TENTATIVE_HOLD))
     event_status: EventStatus = Field(default=EventStatus.PENDING, sa_column=enum_column(EventStatus, EventStatus.PENDING))

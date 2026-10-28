@@ -41,6 +41,14 @@ services:
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
+      - key: GOOGLE_CALENDAR_ENABLED
+        value: "false"
+      - key: GOOGLE_CALENDAR_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_CALENDAR_CREDENTIAL_KEY
+        sync: false
+      - key: GOOGLE_CALENDAR_OAUTH_TRANSACTION_COOKIE_NAME
+        value: group_scheduler_calendar_oauth
       - key: ONEMAP_TOKEN
         sync: false
       - key: DEFAULT_JOURNEY_CAP_MINUTES

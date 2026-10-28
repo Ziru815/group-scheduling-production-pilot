@@ -6,6 +6,7 @@ from sqlmodel import Session, col, delete, select
 
 from app.models import (
     ActivityType, AvailabilityInterval, AvailabilityRecord, CalendarConnection,
+    CalendarCredential,
     CalendarEvent, CandidateTimeslot, Combination, Participant, RecordStatus,
     SchedulingSession, ShortlistStatus, TimeslotAttendance, TravelEstimate,
     UserAccount, Venue, VenueActivity, VenueShortlistEntry,
@@ -116,4 +117,6 @@ class CalendarRepository:
     def connection(self, participant_id: UUID): return self.db.exec(select(CalendarConnection).where(CalendarConnection.participant_id == participant_id)).first()
     def save(self, item): self.db.add(item); self.db.flush(); return item
     def events(self, session_id: UUID): return list(self.db.exec(select(CalendarEvent).where(CalendarEvent.session_id == session_id)).all())
+    def credential_for_user(self, account_id: UUID): return self.db.exec(select(CalendarCredential).where(CalendarCredential.user_account_id == account_id)).first()
+    def credential(self, credential_id: UUID): return self.db.get(CalendarCredential, credential_id)
 

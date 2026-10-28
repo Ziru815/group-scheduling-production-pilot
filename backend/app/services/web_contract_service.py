@@ -10,20 +10,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import HTTPException
 from sqlmodel import Session, col, select
 
-from app.core.config import settings
 from app.models import (
     ActivityType,
     AttendanceStatus,
     AvailabilityInterval,
     AvailabilityRecord,
-    CalendarConnection,
-    CalendarEvent,
     CandidateTimeslot,
     Combination,
     CombinationStatus,
-    ConnectionStatus,
-    EventStatus,
-    EventType,
     FeasibilityStatus,
     GeocodeStatus,
     IntervalSource,
@@ -45,6 +39,7 @@ from app.repositories import AvailabilityRepository, ParticipantRepository, Sess
 from app.schemas.web import SaveResponseRequest
 from app.services.application_services import _bump_revision, _ensure_active, _get_session_or_404, _utcnow
 from app.services.authorization_service import require_member, require_organiser
+from app.services.calendar_sync_service import CalendarSyncService
 
 
 def session_zone(name: str) -> ZoneInfo:
@@ -97,7 +92,7 @@ def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> d
         "isClosed": item.status != SessionStatus.ACTIVE or _utcnow() > _as_utc(deadline),
         "recommendationsStale": stale,
         "hasRecommendations": has_recommendations,
-        "confirmed": confirmed_plan(db, item),
+        "confirmed": confirmed_plan(db, item, user),
     }
 
 
@@ -310,7 +305,7 @@ def recommendation_set(db: Session, user: UserAccount, session_id: UUID) -> dict
     }
 
 
-def confirmed_plan(db: Session, item: SchedulingSession) -> dict | None:
+def confirmed_plan(db: Session, item: SchedulingSession, user: UserAccount) -> dict | None:
     if item.confirmed_combination_id is None:
         return None
     combo = db.get(Combination, item.confirmed_combination_id)
@@ -323,7 +318,7 @@ def confirmed_plan(db: Session, item: SchedulingSession) -> dict | None:
     for row in attendance:
         participant = db.get(Participant, row.participant_id)
         attendees.append({"participantId": participant.participant_id, "displayName": participant.display_name})
-    return {
+    result = {
         "combinationId": combo.combination_id,
         "venue": _venue(venue),
         "start": local_datetime(slot.start_date_time, item.timezone),
@@ -331,6 +326,10 @@ def confirmed_plan(db: Session, item: SchedulingSession) -> dict | None:
         "attendees": attendees,
         "confirmedAt": _aware_utc(item.confirmed_at or item.updated_at),
     }
+    result["calendarSync"] = CalendarSyncService.confirmed_summary(
+        db, user, item.session_id
+    ).to_api()
+    return result
 
 
 def confirm_plan(db: Session, user: UserAccount, session_id: UUID, combination_id: UUID) -> dict:
@@ -353,33 +352,8 @@ def confirm_plan(db: Session, user: UserAccount, session_id: UUID, combination_i
     item.status = SessionStatus.CONFIRMED
     db.add(combo)
     db.add(item)
-    _sync_confirmed_calendar_events(db, item, combo)
     db.commit()
     return session_detail(db, user, item)
-
-
-def _sync_confirmed_calendar_events(db: Session, item: SchedulingSession, combo: Combination) -> None:
-    holds = list(db.exec(select(CalendarEvent).where(CalendarEvent.session_id == item.session_id, CalendarEvent.event_type == EventType.TENTATIVE_HOLD)).all())
-    for hold in holds:
-        hold.event_status = EventStatus.DELETED
-        db.add(hold)
-    attendance = list(db.exec(select(TimeslotAttendance).where(TimeslotAttendance.candidate_timeslot_id == combo.candidate_timeslot_id, TimeslotAttendance.attendance_status == AttendanceStatus.AVAILABLE)).all())
-    for attendee in attendance:
-        connection = db.exec(select(CalendarConnection).where(CalendarConnection.participant_id == attendee.participant_id, CalendarConnection.connection_status == ConnectionStatus.CONNECTED)).first()
-        if connection is None:
-            continue
-        db.add(
-            CalendarEvent(
-                calendar_connection_id=connection.connection_id,
-                session_id=item.session_id,
-                candidate_timeslot_id=combo.candidate_timeslot_id,
-                combination_id=combo.combination_id,
-                event_type=EventType.CONFIRMED_EVENT,
-                event_status=EventStatus.ACTIVE if settings.use_mock_providers else EventStatus.ERROR,
-                provider_event_id=(f"demo-confirmed:{combo.combination_id}:{attendee.participant_id}" if settings.use_mock_providers else None),
-                last_error=(None if settings.use_mock_providers else "Google Calendar provider is not configured"),
-            )
-        )
 
 
 def _combination_projection(db: Session, combo: Combination, fallback_rank: int) -> dict:

@@ -122,6 +122,36 @@
   font-size: var(--text-sm);
 }
 
+.confirmed__calendar {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+}
+
+.confirmed__calendar-error {
+  color: var(--color-danger);
+}
+
+.confirmed__calendar-retry {
+  justify-self: start;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.confirmed__calendar-retry:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .confirmed__meta {
   font-size: var(--text-xs);
   color: var(--color-text-muted);

@@ -77,9 +77,17 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
   const grid = useMemo(() => buildGrid(session), [session])
   const [params] = useSearchParams()
   const calendarReturn = params.get('calendar')
+  const calendarOauthResult =
+    calendarReturn === 'connected' ||
+    calendarReturn === 'declined' ||
+    calendarReturn === 'unavailable' ||
+    calendarReturn === 'wrong-account' ||
+    calendarReturn === 'missing-scopes'
+      ? calendarReturn
+      : null
 
   // Restore selections stashed before a Google Calendar redirect, if we just came back.
-  const [draft] = useState(() => (calendarReturn ? peekDraft(session.id) : null))
+  const [draft] = useState(() => (calendarOauthResult ? peekDraft(session.id) : null))
   useEffect(() => clearDraft(session.id), [session.id])
 
   const record = mine.record
@@ -245,7 +253,7 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
           returnPath={`/sessions/${session.id}/availability`}
           onBusy={handleBusy}
           beforeRedirect={() => saveDraft(session.id, { slots: [...selected], transportMode })}
-          declined={calendarReturn === 'declined'}
+          oauthResult={calendarOauthResult}
         />
       )}
 

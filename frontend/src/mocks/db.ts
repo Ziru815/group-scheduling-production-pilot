@@ -80,6 +80,8 @@ export interface MockSession {
   recommendationsStale: boolean
   /** Snapshot of the confirmed option (FR-E4), so it survives later re-ranking. */
   confirmed: ConfirmedPlan | null
+  /** Dev-only provider failures used to exercise scoped retry UI. */
+  calendarSyncFailedUserIds?: Id[]
 }
 
 export interface MockLocationCandidate {

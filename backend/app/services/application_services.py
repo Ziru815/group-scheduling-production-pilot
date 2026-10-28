@@ -19,6 +19,7 @@ from app.models import (
 from app.repositories import AvailabilityRepository, ParticipantRepository, RecommendationRepository, SessionRepository, VenueRepository
 from app.schemas import AvailabilityIntervalInput, AvailabilityOwn, AvailabilitySubmit, GenerateResult, RankedCombination, SessionCreate, SessionUpdate
 from app.services.authorization_service import require_member, require_organiser
+from app.services.calendar_service import CalendarService
 from app.services.domain_rules import attendance_score, combined_score, enumerate_timeslots, haversine_km, interval_covers, travel_score
 
 
@@ -65,6 +66,7 @@ class SessionService:
             )
             db.add(participant)
             db.flush()
+            CalendarService.attach_connected_user(db, user, participant)
             item.organiser_participant_id = participant.participant_id
             db.commit()
         except IntegrityError as exc: db.rollback(); raise HTTPException(409, "Could not create session") from exc
@@ -83,15 +85,24 @@ class SessionService:
         if item is None: raise HTTPException(404, "Invitation is invalid")
         _ensure_active(item)
         existing = ParticipantRepository(db).membership(item.session_id, user.account_id)
-        if existing: return existing
+        if existing:
+            if CalendarService.attach_connected_user(db, user, existing) is not None:
+                db.commit()
+            return existing
         count = len(ParticipantRepository(db).for_session(item.session_id))
         if count >= settings.default_participant_limit: raise HTTPException(409, "Participant limit reached")
         participant = Participant(user_account_id=user.account_id, session_id=item.session_id, display_name=user.display_name)
         db.add(participant)
-        try: db.commit()
+        try:
+            db.flush()
+            CalendarService.attach_connected_user(db, user, participant)
+            db.commit()
         except IntegrityError:
             db.rollback()
-            return ParticipantRepository(db).membership(item.session_id, user.account_id)
+            participant = ParticipantRepository(db).membership(item.session_id, user.account_id)
+            if participant is not None and CalendarService.attach_connected_user(db, user, participant) is not None:
+                db.commit()
+            return participant
         db.refresh(participant); return participant
 
     @staticmethod

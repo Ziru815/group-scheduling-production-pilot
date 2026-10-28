@@ -14,6 +14,12 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 
 from app.adapters.google_oauth import GoogleOAuthClient, GoogleOAuthError
+from app.adapters.google_calendar_oauth import GoogleCalendarOAuthClient, GoogleCalendarOAuthError
+from app.adapters.google_calendar_adapter import (
+    CalendarAuthorizationExpired,
+    CalendarProviderUnavailable,
+    GoogleCalendarAdapter,
+)
 from app.adapters.mock import MockGeocoder
 from app.adapters.onemap import OneMapAdapter as EngineOneMapAdapter
 from app.core.config import settings
@@ -47,6 +53,9 @@ from app.services.application_services import SessionService, _bump_revision, _e
 from app.services.authentication_service import AuthenticationService
 from app.services.authorization_service import require_member, require_organiser
 from app.services.integrated_recommendation_service import IntegratedRecommendationService
+from app.services.calendar_service import CalendarService
+from app.services.calendar_credentials import CalendarCredentialError, CalendarCredentialVault
+from app.services.calendar_sync_service import CalendarSyncService, CalendarSyncSummary
 from app.services.web_contract_service import (
     activity_categories,
     confirm_plan,
@@ -84,6 +93,62 @@ async def get_google_oauth_client() -> AsyncIterator[GoogleOAuthClient]:
             signing_secret=settings.app_session_secret,
             http_client=http_client,
             transaction_max_age_seconds=settings.google_oauth_transaction_max_age_seconds,
+        )
+
+
+async def get_google_calendar_oauth_client() -> AsyncIterator[GoogleCalendarOAuthClient]:
+    async with httpx.AsyncClient(timeout=10) as http_client:
+        yield GoogleCalendarOAuthClient(
+            client_id=settings.google_client_id or "",
+            client_secret=settings.google_client_secret or "",
+            redirect_uri=settings.google_calendar_redirect_uri or "",
+            signing_secret=settings.app_session_secret,
+            http_client=http_client,
+            transaction_max_age_seconds=settings.google_oauth_transaction_max_age_seconds,
+        )
+
+
+async def get_google_calendar_adapter(db: Session = Depends(get_db)) -> AsyncIterator[GoogleCalendarAdapter]:
+    bind = db.get_bind()
+
+    def resolve_refresh_token(reference: str) -> str:
+        if not settings.google_calendar_credential_key:
+            raise CalendarCredentialError("Google Calendar credential storage is unavailable")
+        with Session(bind) as credential_db:
+            return CalendarCredentialVault(
+                credential_db,
+                settings.google_calendar_credential_key,
+            ).refresh_token(reference)
+
+    def resolve_calendar_id(reference: str) -> str | None:
+        credential_id = CalendarCredentialVault._credential_id(reference)
+        with Session(bind) as credential_db:
+            credential = CalendarRepository(credential_db).credential(credential_id)
+            return credential.google_calendar_id if credential is not None else None
+
+    def save_calendar_id(reference: str, calendar_id: str | None) -> None:
+        credential_id = CalendarCredentialVault._credential_id(reference)
+        with Session(bind) as credential_db:
+            credential = CalendarRepository(credential_db).credential(credential_id)
+            if credential is None:
+                raise CalendarCredentialError("Calendar credential was not found")
+            credential.google_calendar_id = calendar_id
+            credential_db.add(credential)
+            credential_db.commit()
+
+    def mark_expired(reference: str) -> None:
+        with Session(bind) as credential_db:
+            CalendarService.mark_expired(credential_db, reference)
+
+    async with httpx.AsyncClient(timeout=10) as http_client:
+        yield GoogleCalendarAdapter(
+            client_id=settings.google_client_id or "",
+            client_secret=settings.google_client_secret or "",
+            http_client=http_client,
+            refresh_token_resolver=resolve_refresh_token,
+            calendar_id_resolver=resolve_calendar_id,
+            calendar_id_saver=save_calendar_id,
+            mark_expired=mark_expired,
         )
 
 
@@ -353,76 +418,179 @@ def web_recommendations(session_id: UUID, db: Session = Depends(get_db), user: U
 
 
 @router.post("/sessions/{session_id}/recommendations", tags=["web-recommendations"])
-async def web_generate_recommendations(session_id: UUID, db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    result = await IntegratedRecommendationService.generate(db, user, session_id)
+async def web_generate_recommendations(
+    session_id: UUID,
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    calendar_adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    result = await IntegratedRecommendationService.generate(
+        db,
+        user,
+        session_id,
+        calendar_adapter if settings.google_calendar_enabled else None,
+    )
     if result.status.value == "NO_TIMESLOT_MEETS_THRESHOLD":
         raise HTTPException(409, "No Timeslot meets the Minimum-Attendee Threshold")
     return recommendation_set(db, user, session_id)
 
 
 @router.post("/sessions/{session_id}/confirm", tags=["web-recommendations"])
-def web_confirm_plan(payload: ConfirmPlanRequest, session_id: UUID, db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    return confirm_plan(db, user, session_id, payload.combination_id)
+async def web_confirm_plan(
+    payload: ConfirmPlanRequest,
+    session_id: UUID,
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    calendar_adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    result = confirm_plan(db, user, session_id, payload.combination_id)
+    if settings.google_calendar_enabled:
+        try:
+            summary = await CalendarSyncService(calendar_adapter).sync_confirmed(db, user, session_id)
+        except Exception:
+            # The Session confirmation above is authoritative; Calendar is a
+            # best-effort side effect and cannot replace the successful result.
+            db.rollback()
+            summary = CalendarSyncSummary(failed=1, can_retry=True)
+    else:
+        summary = CalendarSyncSummary()
+    result["confirmed"]["calendarSync"] = summary.to_api()
+    return result
+
+
+@router.post("/sessions/{session_id}/calendar-sync", tags=["web-calendar"])
+async def retry_calendar_sync(
+    session_id: UUID,
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    calendar_adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    if not settings.google_calendar_enabled:
+        return CalendarSyncSummary().to_api()
+    return (
+        await CalendarSyncService(calendar_adapter).sync_confirmed(db, user, session_id)
+    ).to_api()
 
 
 @router.get("/calendar/connection", tags=["web-calendar"])
 def calendar_connection(db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    connections = list(
-        db.exec(
-            select(CalendarConnection)
-            .join(Participant, Participant.participant_id == CalendarConnection.participant_id)
-            .where(Participant.user_account_id == user.account_id)
-        ).all()
-    )
-    status = next((row.connection_status.value for row in connections if row.connection_status == ConnectionStatus.CONNECTED), "DISCONNECTED")
-    return {"status": status}
+    return {"status": CalendarService.user_status(db, user).value}
 
 
 @router.get("/calendar/google/connect", tags=["web-calendar"])
-def connect_calendar(next: str = Query(default="/sessions"), db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    safe_next = _safe_path(next)
-    match = re.match(r"^/sessions/([0-9a-fA-F-]{36})/", safe_next)
-    if not match:
-        raise HTTPException(422, "Calendar return path must identify a Session")
-    session_id = UUID(match.group(1))
-    member = require_member(db, session_id, user)
-    if not settings.use_mock_providers:
-        return RedirectResponse(_frontend_url(f"{safe_next}?calendar=unavailable"), status_code=302)
-    connection = CalendarRepository(db).connection(member.participant_id) or CalendarConnection(participant_id=member.participant_id)
-    connection.connection_status = ConnectionStatus.CONNECTED
-    connection.credential_reference = f"demo:{user.account_id}"
-    connection.granted_scopes = "calendar.freebusy calendar.app.created"
-    db.add(connection)
-    db.commit()
-    return RedirectResponse(_frontend_url(safe_next), status_code=302)
+def connect_calendar(
+    next: str = Query(default="/sessions"),
+    user: UserAccount = Depends(current_web_user),
+    oauth_client: GoogleCalendarOAuthClient = Depends(get_google_calendar_oauth_client),
+):
+    if not settings.google_calendar_enabled:
+        return RedirectResponse(_calendar_result_url(next, "unavailable"), status_code=302)
+    start = oauth_client.begin(user.account_id, user.provider_user_id, next)
+    response = RedirectResponse(start.authorization_url, status_code=302)
+    response.set_cookie(
+        settings.google_calendar_oauth_transaction_cookie_name,
+        start.transaction_cookie,
+        httponly=True,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
+        max_age=settings.google_oauth_transaction_max_age_seconds,
+        path="/",
+    )
+    return response
+
+
+@router.get("/calendar/google/callback", tags=["web-calendar"])
+async def calendar_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    oauth_client: GoogleCalendarOAuthClient = Depends(get_google_calendar_oauth_client),
+    calendar_adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    transaction_cookie = request.cookies.get(settings.google_calendar_oauth_transaction_cookie_name)
+    next_path = "/profile"
+    if transaction_cookie and hasattr(oauth_client, "transaction_path"):
+        try:
+            next_path = oauth_client.transaction_path(transaction_cookie)
+        except GoogleCalendarOAuthError:
+            pass
+    if not settings.google_calendar_enabled:
+        response = RedirectResponse(_calendar_result_url(next_path, "unavailable"), status_code=302)
+    elif error == "access_denied":
+        try:
+            if not state or not transaction_cookie:
+                raise GoogleCalendarOAuthError("Calendar OAuth transaction is missing")
+            next_path = oauth_client.decline(state, transaction_cookie)
+        except GoogleCalendarOAuthError:
+            response = RedirectResponse(_calendar_result_url(next_path, "unavailable"), status_code=302)
+        else:
+            response = RedirectResponse(_calendar_result_url(next_path, "declined"), status_code=302)
+    elif not code or not state or not transaction_cookie:
+        response = RedirectResponse(_calendar_result_url(next_path, "unavailable"), status_code=302)
+    else:
+        connected_reference = None
+        try:
+            grant = await oauth_client.complete(code, state, transaction_cookie)
+            if grant.account_id != user.account_id:
+                raise GoogleCalendarOAuthError("Calendar OAuth transaction belongs to another account")
+            connected_reference = CalendarService.connect_user(
+                db,
+                user,
+                subject=grant.subject,
+                refresh_token=grant.refresh_token,
+                granted_scopes=list(grant.granted_scopes),
+            )
+            await calendar_adapter.ensure_app_calendar(connected_reference, "Asia/Singapore")
+        except GoogleCalendarOAuthError as exc:
+            marker = "wrong-account" if "same Google account" in str(exc) else "missing-scopes" if "scope" in str(exc).lower() else "unavailable"
+            response = RedirectResponse(_calendar_result_url(next_path, marker), status_code=302)
+        except (CalendarCredentialError, CalendarAuthorizationExpired, CalendarProviderUnavailable, HTTPException):
+            if connected_reference is not None:
+                await CalendarService.disconnect_user(db, user, calendar_adapter)
+            response = RedirectResponse(_calendar_result_url(next_path, "unavailable"), status_code=302)
+        else:
+            response = RedirectResponse(_calendar_result_url(grant.next_path, "connected"), status_code=302)
+    _clear_google_calendar_transaction_cookie(response)
+    return response
 
 
 @router.delete("/calendar/connection", status_code=204, tags=["web-calendar"])
-def disconnect_calendar(db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    connections = list(
-        db.exec(
-            select(CalendarConnection)
-            .join(Participant, Participant.participant_id == CalendarConnection.participant_id)
-            .where(Participant.user_account_id == user.account_id)
-        ).all()
+async def disconnect_calendar(
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    await CalendarService.disconnect_user(
+        db,
+        user,
+        adapter if settings.google_calendar_enabled else None,
     )
-    for connection in connections:
-        connection.connection_status = ConnectionStatus.DISCONNECTED
-        connection.credential_reference = None
-        connection.granted_scopes = ""
-        db.add(connection)
-    db.commit()
 
 
 @router.post("/sessions/{session_id}/calendar-busy", tags=["web-calendar"])
-def calendar_busy(session_id: UUID, db: Session = Depends(get_db), user: UserAccount = Depends(current_web_user)):
-    member = require_member(db, session_id, user)
-    connection = CalendarRepository(db).connection(member.participant_id)
-    if connection is None or connection.connection_status != ConnectionStatus.CONNECTED:
-        raise HTTPException(409, "Calendar is not connected")
-    if not settings.use_mock_providers:
+async def calendar_busy(
+    session_id: UUID,
+    db: Session = Depends(get_db),
+    user: UserAccount = Depends(current_web_user),
+    adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
+):
+    if not settings.google_calendar_enabled:
         return {"status": "UNAVAILABLE", "busy": []}
-    return {"status": "RECEIVED", "busy": []}
+    if settings.use_mock_providers:
+        return {"status": "RECEIVED", "busy": []}
+    busy = await CalendarService.import_busy(db, user, session_id, adapter)
+    if busy is None:
+        return {"status": "UNAVAILABLE", "busy": []}
+    return {
+        "status": "RECEIVED",
+        "busy": [
+            {"start": _calendar_iso(row.start), "end": _calendar_iso(row.end)}
+            for row in busy
+        ],
+    }
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -447,6 +615,16 @@ def _clear_google_transaction_cookie(response: Response) -> None:
     )
 
 
+def _clear_google_calendar_transaction_cookie(response: Response) -> None:
+    response.delete_cookie(
+        settings.google_calendar_oauth_transaction_cookie_name,
+        path="/",
+        secure=settings.session_cookie_secure,
+        httponly=True,
+        samesite="lax",
+    )
+
+
 def _safe_path(value: str, fallback: str = "/sessions") -> str:
     if not value.startswith("/") or value.startswith("//") or "\n" in value or "\r" in value:
         return fallback
@@ -455,4 +633,15 @@ def _safe_path(value: str, fallback: str = "/sessions") -> str:
 
 def _frontend_url(path: str) -> str:
     return f"{settings.frontend_base_url.rstrip('/')}{_safe_path(path)}"
+
+
+def _calendar_result_url(path: str, result: str) -> str:
+    safe_path = _safe_path(path)
+    separator = "&" if "?" in safe_path else "?"
+    return _frontend_url(f"{safe_path}{separator}calendar={result}")
+
+
+def _calendar_iso(value: datetime) -> str:
+    rendered = value.isoformat()
+    return rendered[:-6] + "Z" if rendered.endswith("+00:00") else rendered
 
