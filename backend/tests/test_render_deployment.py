@@ -22,7 +22,11 @@ def _write_fake_command(directory: Path, name: str, exit_code: int = 0) -> None:
 
 
 def _run_start_script(
-    tmp_path: Path, *, alembic_exit: int = 0, python_exit: int = 0
+    tmp_path: Path,
+    *,
+    alembic_exit: int = 0,
+    python_exit: int = 0,
+    venue_sync_mode: str | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -40,6 +44,10 @@ def _run_start_script(
             "PORT": "4321",
         }
     )
+    if venue_sync_mode is not None:
+        env["VENUE_SYNC_MODE"] = venue_sync_mode
+    else:
+        env.pop("VENUE_SYNC_MODE", None)
     result = subprocess.run(
         ["sh", str(START_SCRIPT)],
         cwd=ROOT / "backend",
@@ -74,6 +82,41 @@ def test_render_startup_stops_when_reference_seed_fails(tmp_path: Path) -> None:
     result, calls = _run_start_script(tmp_path, python_exit=24)
 
     assert result.returncode == 24
+    assert calls == [
+        "alembic upgrade head",
+        "python -m scripts.seed_reference_data",
+    ]
+
+
+def test_render_startup_can_dry_run_venue_sync_before_server(tmp_path: Path) -> None:
+    result, calls = _run_start_script(tmp_path, venue_sync_mode="dry-run")
+
+    assert result.returncode == 0
+    assert calls == [
+        "alembic upgrade head",
+        "python -m scripts.seed_reference_data",
+        "python -m scripts.sync_venues --dry-run",
+        "uvicorn app.main:app --host 0.0.0.0 --port 4321",
+    ]
+
+
+def test_render_startup_can_apply_venue_sync_before_server(tmp_path: Path) -> None:
+    result, calls = _run_start_script(tmp_path, venue_sync_mode="apply")
+
+    assert result.returncode == 0
+    assert calls == [
+        "alembic upgrade head",
+        "python -m scripts.seed_reference_data",
+        "python -m scripts.sync_venues --apply",
+        "uvicorn app.main:app --host 0.0.0.0 --port 4321",
+    ]
+
+
+def test_render_startup_rejects_unknown_venue_sync_mode(tmp_path: Path) -> None:
+    result, calls = _run_start_script(tmp_path, venue_sync_mode="surprise")
+
+    assert result.returncode != 0
+    assert "VENUE_SYNC_MODE" in result.stderr
     assert calls == [
         "alembic upgrade head",
         "python -m scripts.seed_reference_data",
