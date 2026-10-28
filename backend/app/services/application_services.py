@@ -50,10 +50,23 @@ class SessionService:
     def create(db: Session, user: UserAccount, data: SessionCreate) -> SchedulingSession:
         if db.get(ActivityType, data.activity_type_id) is None: raise HTTPException(422, "Unknown activity type")
         item = SchedulingSession(**data.model_dump(), invitation_token=token_urlsafe(24))
-        participant = Participant(user_account_id=user.account_id, session_id=item.session_id, display_name=user.display_name, role=ParticipantRole.ORGANISER)
-        item.organiser_participant_id = participant.participant_id
-        db.add(item); db.add(participant)
-        try: db.commit()
+        try:
+            # Insert the session without its organiser link first, then insert the
+            # organiser membership and complete the circular relationship.  Real
+            # PostgreSQL foreign keys reject inserting either side fully linked
+            # before the other row exists.
+            db.add(item)
+            db.flush()
+            participant = Participant(
+                user_account_id=user.account_id,
+                session_id=item.session_id,
+                display_name=user.display_name,
+                role=ParticipantRole.ORGANISER,
+            )
+            db.add(participant)
+            db.flush()
+            item.organiser_participant_id = participant.participant_id
+            db.commit()
         except IntegrityError as exc: db.rollback(); raise HTTPException(409, "Could not create session") from exc
         db.refresh(item)
         return item
