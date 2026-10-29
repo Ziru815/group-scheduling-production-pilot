@@ -133,6 +133,37 @@ async def test_complete_returns_verified_grant_and_original_pkce_verifier():
 
 
 @pytest.mark.asyncio
+async def test_complete_accepts_calendar_grant_when_google_omits_oidc_aliases_from_token_scope():
+    calendar_scopes = {
+        "https://www.googleapis.com/auth/calendar.freebusy",
+        "https://www.googleapis.com/auth/calendar.app.created",
+    }
+    client = _client(
+        httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "id_token": "signed",
+                    "refresh_token": "refresh-secret",
+                    "scope": " ".join(sorted(calendar_scopes)),
+                },
+            )
+        )
+    )
+    try:
+        start = client.begin(ACCOUNT_ID, SUBJECT, "/profile")
+        transaction = _decode(start.transaction_cookie)
+        client.id_token_verifier = _verifier(nonce=transaction["nonce"])
+
+        grant = await client.complete("code", transaction["state"], start.transaction_cookie)
+
+        assert set(grant.granted_scopes) == calendar_scopes
+        assert grant.next_path == "/profile"
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_complete_allows_same_subject_reconnect_without_new_refresh_token():
     client = _client(
         httpx.MockTransport(

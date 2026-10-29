@@ -29,7 +29,8 @@ from app.adapters.google_oauth import (
 TRANSACTION_COOKIE_SALT = "google-calendar-oauth-transaction"
 CALENDAR_FREEBUSY_SCOPE = "https://www.googleapis.com/auth/calendar.freebusy"
 CALENDAR_APP_CREATED_SCOPE = "https://www.googleapis.com/auth/calendar.app.created"
-REQUIRED_SCOPES = frozenset({"openid", "email", CALENDAR_FREEBUSY_SCOPE, CALENDAR_APP_CREATED_SCOPE})
+REQUIRED_CALENDAR_SCOPES = frozenset({CALENDAR_FREEBUSY_SCOPE, CALENDAR_APP_CREATED_SCOPE})
+REQUIRED_SCOPES = frozenset({"openid", "email", *REQUIRED_CALENDAR_SCOPES})
 SESSION_PATH = re.compile(r"^/sessions(?:/[0-9a-fA-F-]{36}(?:/[A-Za-z0-9_-]+)?)?(?:\?[^\r\n]*)?$")
 _CONSUMED_STATES: dict[str, float] = {}
 
@@ -148,7 +149,7 @@ class GoogleCalendarOAuthClient:
         if not hmac.compare_digest(str(claims["sub"]), expected_subject):
             raise GoogleCalendarOAuthError("Choose the same Google account used to sign in")
         granted_scopes = frozenset(str(payload.get("scope", "")).split())
-        if not REQUIRED_SCOPES.issubset(granted_scopes):
+        if not REQUIRED_CALENDAR_SCOPES.issubset(granted_scopes):
             raise GoogleCalendarOAuthError("Required Google Calendar scope was not granted")
 
         refresh_token = payload.get("refresh_token")
