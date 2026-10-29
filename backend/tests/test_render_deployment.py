@@ -123,14 +123,17 @@ def test_render_startup_rejects_unknown_venue_sync_mode(tmp_path: Path) -> None:
     ]
 
 
-def test_render_blueprint_uses_free_singapore_docker_and_postgres() -> None:
+def test_render_blueprint_uses_starter_web_and_free_singapore_postgres() -> None:
     blueprint = RENDER_BLUEPRINT.read_text(encoding="utf-8")
 
     assert "name: group-scheduling-app" in blueprint
     assert "type: web" in blueprint
     assert "runtime: docker" in blueprint
     assert "region: singapore" in blueprint
-    assert blueprint.count("plan: free") == 2
+    assert "name: group-scheduling-app\n    runtime: docker\n    region: singapore\n    plan: starter" in blueprint
+    assert "name: group-scheduling-postgres\n    region: singapore\n    plan: free" in blueprint
+    assert blueprint.count("plan: starter") == 1
+    assert blueprint.count("plan: free") == 1
     assert "dockerfilePath: ./Dockerfile" in blueprint
     assert "dockerCommand: sh scripts/start_production.sh" in blueprint
     assert "healthCheckPath: /ready" in blueprint

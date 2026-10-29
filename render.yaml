@@ -3,7 +3,7 @@ services:
     name: group-scheduling-app
     runtime: docker
     region: singapore
-    plan: free
+    plan: starter
     branch: feature/production-pilot
     dockerfilePath: ./Dockerfile
     dockerContext: .
