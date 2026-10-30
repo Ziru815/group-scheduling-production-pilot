@@ -14,11 +14,16 @@ from app.models import (
     FeasibilityStatus, GenerationStatus, GeocodeStatus, IntervalSource,
     IntervalType, Participant, ParticipantRole, RecordStatus, ResponseStatus,
     SchedulingSession, SessionStatus, ShortlistStatus, TimeslotAttendance,
-    TravelEstimate, UserAccount, Venue, VenueShortlistEntry,
+    TravelEstimate, UserAccount, Venue, VenueCategory, VenueShortlistEntry,
 )
 from app.repositories import AvailabilityRepository, ParticipantRepository, RecommendationRepository, SessionRepository, VenueRepository
 from app.schemas import AvailabilityIntervalInput, AvailabilityOwn, AvailabilitySubmit, GenerateResult, RankedCombination, SessionCreate, SessionUpdate
 from app.services.authorization_service import require_member, require_organiser
+from app.services.activity_availability import (
+    production_support_required,
+    require_creatable_activity,
+    require_mutable_activity,
+)
 from app.services.calendar_service import CalendarService
 from app.services.domain_rules import attendance_score, combined_score, enumerate_timeslots, haversine_km, interval_covers, travel_score
 
@@ -49,7 +54,11 @@ def _bump_revision(item: SchedulingSession) -> None:
 class SessionService:
     @staticmethod
     def create(db: Session, user: UserAccount, data: SessionCreate) -> SchedulingSession:
-        if db.get(ActivityType, data.activity_type_id) is None: raise HTTPException(422, "Unknown activity type")
+        require_creatable_activity(
+            db,
+            data.activity_type_id,
+            require_verified=production_support_required(),
+        )
         item = SchedulingSession(**data.model_dump(), invitation_token=token_urlsafe(24))
         try:
             # Insert the session without its organiser link first, then insert the
@@ -84,6 +93,7 @@ class SessionService:
         item = SessionRepository(db).by_token(invitation_token)
         if item is None: raise HTTPException(404, "Invitation is invalid")
         _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         existing = ParticipantRepository(db).membership(item.session_id, user.account_id)
         if existing:
             if CalendarService.attach_connected_user(db, user, existing) is not None:
@@ -108,6 +118,7 @@ class SessionService:
     @staticmethod
     def update(db: Session, user: UserAccount, session_id: UUID, data: SessionUpdate):
         require_organiser(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         values = data.model_dump(exclude_none=True)
         for key, value in values.items(): setattr(item, key, value)
         if item.date_range_start >= item.date_range_end or item.response_deadline >= item.date_range_start:
@@ -136,6 +147,7 @@ class AvailabilityService:
     @classmethod
     def submit(cls, db: Session, user: UserAccount, session_id: UUID, data: AvailabilitySubmit) -> AvailabilityOwn:
         participant = require_member(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         if _utcnow() > _as_utc(item.response_deadline): raise HTTPException(409, "Response deadline has passed")
         intervals = cls._validate_intervals(item, data.intervals)
         repo = AvailabilityRepository(db); previous = repo.current(participant.participant_id)
@@ -159,6 +171,7 @@ class AvailabilityService:
     @staticmethod
     def withdraw(db: Session, user: UserAccount, session_id: UUID):
         participant = require_member(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         record = AvailabilityRepository(db).current(participant.participant_id)
         if record is None: raise HTTPException(404, "No active response")
         record.record_status = RecordStatus.WITHDRAWN; record.withdrawn_at = _utcnow(); participant.response_status = ResponseStatus.WITHDRAWN
@@ -170,6 +183,7 @@ class RecommendationService:
     @staticmethod
     def generate(db: Session, user: UserAccount, session_id: UUID) -> GenerateResult:
         require_organiser(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         snapshot_revision = item.source_revision
         repo = RecommendationRepository(db); repo.delete_revision(session_id, snapshot_revision)
         participants = ParticipantRepository(db).for_session(session_id)
@@ -212,12 +226,13 @@ class RecommendationService:
             for entry in shortlist:
                 venue = venue_by_id[entry.venue_id]
                 feasibility, reason = FeasibilityStatus.DATA_UNAVAILABLE, "ROUTING_NOT_CALCULATED"
-                if venue.minimum_group_size is None or venue.advance_booking_lead_minutes is None:
-                    reason = "VENUE_CONSTRAINTS_UNKNOWN"
-                elif slot.available_count < venue.minimum_group_size:
-                    feasibility, reason = FeasibilityStatus.EXCLUDED, "MINIMUM_GROUP_SIZE"
-                elif (_as_utc(slot.start_date_time) - _utcnow()).total_seconds() / 60 < venue.advance_booking_lead_minutes:
-                    feasibility, reason = FeasibilityStatus.EXCLUDED, "INSUFFICIENT_BOOKING_LEAD"
+                if venue.category == VenueCategory.SPORTS_FACILITY:
+                    if venue.minimum_group_size is None or venue.advance_booking_lead_minutes is None:
+                        reason = "VENUE_CONSTRAINTS_UNKNOWN"
+                    elif slot.available_count < venue.minimum_group_size:
+                        feasibility, reason = FeasibilityStatus.EXCLUDED, "MINIMUM_GROUP_SIZE"
+                    elif (_as_utc(slot.start_date_time) - _utcnow()).total_seconds() / 60 < venue.advance_booking_lead_minutes:
+                        feasibility, reason = FeasibilityStatus.EXCLUDED, "INSUFFICIENT_BOOKING_LEAD"
                 combinations.append(Combination(session_id=session_id, candidate_timeslot_id=slot.timeslot_id, venue_id=entry.venue_id, attendee_count=slot.available_count, feasibility_status=feasibility, exclusion_reason=reason, status=CombinationStatus.EXCLUDED if feasibility == FeasibilityStatus.EXCLUDED else CombinationStatus.CANDIDATE, source_revision=snapshot_revision))
         if item.source_revision != snapshot_revision: raise HTTPException(409, "Session changed during generation; retry")
         repo.add_all([*slots, *attendance_rows, *shortlist, *combinations]); db.commit()
@@ -226,6 +241,7 @@ class RecommendationService:
     @staticmethod
     def rescore(db: Session, user: UserAccount, session_id: UUID):
         require_organiser(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         participants_count = len(ParticipantRepository(db).for_session(session_id))
         combos = list(db.exec(select(Combination).where(Combination.session_id == session_id, Combination.source_revision == item.source_revision)).all())
         raw_burden, slot_start = {}, {}
@@ -257,6 +273,7 @@ class RecommendationService:
     @staticmethod
     def confirm(db: Session, user: UserAccount, session_id: UUID, combination_id: UUID, expected_revision: int):
         require_organiser(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True); _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         if item.source_revision != expected_revision: raise HTTPException(409, "Recommendations are stale; regenerate before confirming")
         combo = db.get(Combination, combination_id)
         if combo is None or combo.session_id != session_id: raise HTTPException(404, "Combination not found")

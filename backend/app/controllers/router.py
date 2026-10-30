@@ -14,6 +14,11 @@ from app.schemas import (
     SessionPublic, SessionUpdate,
 )
 from app.services.application_services import AvailabilityService, RecommendationService, SessionService, _bump_revision, _get_session_or_404
+from app.services.activity_availability import (
+    production_support_required,
+    require_mutable_activity,
+    supported_activity_types,
+)
 from app.services.authentication_service import AuthenticationService
 from app.services.authorization_service import require_member, require_organiser
 from app.services.travel_service import TravelService
@@ -30,7 +35,8 @@ def me(user: UserAccount = Depends(current_user)): return {"account_id": user.ac
 
 
 @router.get("/activities", response_model=list[ActivityType], tags=["sessions"])
-def activities(db: Session = Depends(get_db), _: UserAccount = Depends(current_user)): return list(db.exec(select(ActivityType).where(ActivityType.is_active == True)).all())  # noqa: E712
+def activities(db: Session = Depends(get_db), _: UserAccount = Depends(current_user)):
+    return supported_activity_types(db, require_verified=production_support_required())
 
 
 @router.post("/sessions", response_model=SessionManagement, status_code=201, tags=["sessions"])
@@ -79,6 +85,8 @@ def withdraw_availability(session_id: UUID, db: Session = Depends(get_db), user:
 @router.post("/sessions/{session_id}/availability/me/geocode", tags=["travel"])
 async def geocode_own_location(session_id: UUID, db: Session = Depends(get_db), user: UserAccount = Depends(current_user)):
     member = require_member(db, session_id, user)
+    item = _get_session_or_404(db, session_id)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     record = db.exec(select(AvailabilityRecord).where(AvailabilityRecord.participant_id == member.participant_id, AvailabilityRecord.record_status == "ACTIVE")).first()
     if record is None: raise HTTPException(404, "No active response")
     updated = await TravelService(OneMapAdapter(), OneMapAdapter()).geocode_own_record(db, user, session_id, record)
@@ -88,6 +96,7 @@ async def geocode_own_location(session_id: UUID, db: Session = Depends(get_db), 
 @router.put("/sessions/{session_id}/recommendation-settings", response_model=SessionPublic, tags=["recommendations"])
 def recommendation_settings(session_id: UUID, payload: RecommendationSettings, db: Session = Depends(get_db), user: UserAccount = Depends(current_user)):
     require_organiser(db, session_id, user); item = _get_session_or_404(db, session_id, lock=True)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     item.travel_objective = payload.travel_objective; item.attendance_weight_percent = payload.attendance_weight_percent; item.travel_weight_percent = payload.travel_weight_percent; _bump_revision(item)
     db.add(item); db.commit(); db.refresh(item); return item
 
@@ -98,6 +107,9 @@ def generate(session_id: UUID, db: Session = Depends(get_db), user: UserAccount 
 
 @router.post("/sessions/{session_id}/recommendations/{combination_id}/route", tags=["travel"])
 async def calculate_routes(session_id: UUID, combination_id: UUID, db: Session = Depends(get_db), user: UserAccount = Depends(current_user)):
+    require_member(db, session_id, user)
+    item = _get_session_or_404(db, session_id)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     return await TravelService(OneMapAdapter(), OneMapAdapter()).calculate_for_combination(db, user, session_id, combination_id)
 
 

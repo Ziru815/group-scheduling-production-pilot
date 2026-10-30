@@ -55,6 +55,18 @@ class AvailabilityRepository:
 class VenueRepository:
     def __init__(self, db: Session): self.db = db
     def activities(self): return list(self.db.exec(select(ActivityType).where(ActivityType.is_active == True)).all())  # noqa: E712
+    def has_verified_support(self, activity_type_id: UUID) -> bool:
+        return self.db.exec(
+            select(Venue.venue_id)
+            .join(VenueActivity, VenueActivity.venue_id == Venue.venue_id)
+            .where(
+                VenueActivity.activity_type_id == activity_type_id,
+                VenueActivity.support_status == "SUPPORTED",
+                Venue.is_active == True,  # noqa: E712
+                Venue.verification_status == VenueVerificationStatus.VERIFIED_PUBLIC,
+            )
+            .limit(1)
+        ).first() is not None
     def supported_for_activity(self, activity_type_id: UUID, *, require_verified: bool = False):
         query = select(Venue).join(VenueActivity, VenueActivity.venue_id == Venue.venue_id).where(
             VenueActivity.activity_type_id == activity_type_id,

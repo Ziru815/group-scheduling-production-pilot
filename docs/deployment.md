@@ -126,6 +126,24 @@ and review its counts before running `python -m scripts.sync_venues --apply`.
 The sync is separate from every deployment so an upstream provider outage cannot
 block an otherwise safe application release.
 
+Picnic parks use a second manual, source-isolated sync. On Render, deploy and
+wait for `/ready` first, then use the web-service Shell:
+
+```bash
+cd /app/backend
+python -m scripts.sync_parks --dry-run
+python -m scripts.sync_parks --apply
+python -m scripts.sync_parks --apply
+```
+
+The dry run must report `matched_parks=20`; the repeated apply proves
+idempotency. `DATA_GOV_SG_API_KEY` is optional and, when configured,
+belongs only in the platform secret store. The sync prints aggregate counts,
+not credentials or raw payloads. A failed fetch, schema validation, identity
+match, or database transaction leaves the existing catalogue and the running
+web service unchanged. See `docs/runbooks/assessment-release.md` for the
+controlled withdrawal and restoration procedure.
+
 ## 6. Verify a release
 
 After Railway reports a healthy deployment, check:

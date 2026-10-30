@@ -108,6 +108,7 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
   const withdraw = useWithdrawResponse(session.id)
 
   const closed = session.isClosed
+  const readOnly = closed || !session.activitySupported
   const isSubmitted = mine.responseStatus === 'SUBMITTED'
   const savedLabel = record?.location.label ?? null
   const deadline = formatDateTime(session.responseDeadline, session.timezone)
@@ -247,7 +248,7 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
         </p>
       )}
 
-      {!closed && (
+      {!readOnly && (
         <CalendarImport
           sessionId={session.id}
           returnPath={`/sessions/${session.id}/availability`}
@@ -260,9 +261,9 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
       <section className="avail__section">
         <div className="avail__gridhead">
           <h3 className="avail__label" id="avail-grid-label">
-            {closed ? 'Your times' : 'Tap or drag to mark when you’re free'}
+            {readOnly ? 'Your times' : 'Tap or drag to mark when you’re free'}
           </h3>
-          {!closed && selected.size > 0 && (
+          {!readOnly && selected.size > 0 && (
             <button type="button" className="avail__clear" onClick={() => changeSlots(new Set())}>
               Clear
             </button>
@@ -273,7 +274,7 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
           selected={selected}
           busy={busy}
           onChange={changeSlots}
-          disabled={closed}
+          disabled={readOnly}
           invalid={Boolean(errors.intervals)}
           describedBy={`avail-grid-hint${errors.intervals ? ' avail-grid-error' : ''}`}
         />
@@ -297,10 +298,10 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
           setErrors((e) => ({ ...e, location: undefined }))
         }}
         error={errors.location}
-        disabled={closed}
+        disabled={readOnly}
       />
 
-      {closed ? (
+      {readOnly ? (
         record && (
           <p className="avail__readonly">
             Travelling by <strong>{TRANSPORT_LABELS[record.transportMode]}</strong>
@@ -339,7 +340,7 @@ function AvailabilityForm({ session, mine }: { session: SessionDetail; mine: MyR
         />
       )}
 
-      {!closed && !confirm && (
+      {!readOnly && !confirm && (
         <div className="avail__actions">
           <button type="submit" className="btn-primary" disabled={save.isPending}>
             {save.isPending ? 'Saving…' : isSubmitted ? 'Save changes' : 'Submit availability'}
@@ -368,6 +369,9 @@ function ResponseBadge({ mine, timeZone }: { mine: MyResponse; timeZone: string 
 }
 
 function ClosedBanner({ session, deadline }: { session: SessionDetail; deadline: string }) {
+  if (!session.activitySupported) {
+    return <p className="avail__closed">This activity no longer has a verified venue catalogue. Your saved response is still visible, but this session is read-only.</p>
+  }
   if (session.status === 'CANCELLED') {
     // FR-A5.1
     return <p className="avail__closed">The organiser cancelled this session. Responses are no longer needed.</p>

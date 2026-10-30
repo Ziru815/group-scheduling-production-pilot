@@ -85,6 +85,7 @@ function ResultsView({
   const confirm = useConfirmPlan(session.id)
   const isOrganiser = session.myRole === 'ORGANISER'
   const active = session.status === 'ACTIVE'
+  const mutable = active && session.activitySupported
   const stale = Boolean(set?.stale || session.recommendationsStale)
 
   // undefined = default to the top option; null = user collapsed everything.
@@ -149,12 +150,17 @@ function ResultsView({
       {session.status === 'CANCELLED' && (
         <p className="results__banner results__banner--muted">This session was cancelled.</p>
       )}
+      {!session.activitySupported && (
+        <p className="results__banner results__banner--muted">
+          This historical session is read-only because its activity no longer has a verified venue catalogue. Existing results remain visible.
+        </p>
+      )}
 
       {/* UC-11.AC.1 */}
-      {set && stale && active && (
+      {set && stale && active && mutable && (
         <div className="results__banner results__banner--warn" role="status">
           <p>Responses or details changed since these were ranked, so they may be out of date.</p>
-          {isOrganiser ? (
+          {isOrganiser && mutable ? (
             <button type="button" className="btn-primary" onClick={regenerate} disabled={generate.isPending}>
               {generate.isPending ? 'Updating…' : 'Update ranked options'}
             </button>
@@ -170,7 +176,7 @@ function ResultsView({
             No time fits all {set.minimumAttendees} requested attendees. These are the best available alternatives, clearly
             showing who can and cannot attend.
           </p>
-          {isOrganiser && active && (
+          {isOrganiser && mutable && (
             <p>
               To include everyone, ask the unavailable person to select one continuous {session.durationMinutes}-minute block,
               or edit the session duration/minimum below.
@@ -180,7 +186,7 @@ function ResultsView({
       )}
 
       {!set &&
-        (isOrganiser && active ? (
+        (isOrganiser && mutable ? (
           <StatusMessage
             title="Options haven't been ranked yet"
             action={
@@ -193,13 +199,15 @@ function ResultsView({
           </StatusMessage>
         ) : (
           <StatusMessage title="No options yet">
-            {session.organiserName} hasn't ranked the options yet. Check back later.
+            {session.activitySupported
+              ? `${session.organiserName} hasn't ranked the options yet. Check back later.`
+              : 'This historical session has no saved options and cannot generate new ones.'}
           </StatusMessage>
         ))}
 
       <GenerateError error={generate.error} onRetry={regenerate} />
 
-      {set && isOrganiser && active && (
+      {set && isOrganiser && mutable && (
         <details className="results__adjust">
           <summary>Adjust ranking</summary>
           <div className="results__adjust-body">
@@ -243,7 +251,7 @@ function ResultsView({
         </p>
       )}
 
-      {set && active && combos.length > 0 && (
+      {set && mutable && combos.length > 0 && (
         <div className="results__actions">
           {!isOrganiser ? (
             <p className="results__hint">Only {session.organiserName} (the organiser) can confirm a plan.</p>

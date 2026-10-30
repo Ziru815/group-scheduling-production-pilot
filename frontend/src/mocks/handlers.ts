@@ -181,6 +181,7 @@ function toDetail(s: MockSession, me: MockParticipant): SessionDetail {
     id: s.id,
     name: s.name,
     activityType: activityType(s.activityTypeId) ?? { id: s.activityTypeId, name: '', category: '' },
+    activitySupported: true,
     organiserName: displayName(s.organiserUserId),
     status: s.status,
     myRole: me.role,
@@ -528,6 +529,7 @@ export const handlers = [
         responseDeadline: session.responseDeadline,
         isClosed: isClosed(session),
         alreadyJoined: Boolean(membership(session.id, user.id)),
+        activitySupported: true,
       })
     }),
   ),

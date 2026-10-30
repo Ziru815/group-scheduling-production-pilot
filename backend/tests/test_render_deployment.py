@@ -69,6 +69,7 @@ def test_render_startup_migrates_seeds_then_starts_server(tmp_path: Path) -> Non
         "python -m scripts.seed_reference_data",
         "uvicorn app.main:app --host 0.0.0.0 --port 4321",
     ]
+    assert all("sync_parks" not in call for call in calls)
 
 
 def test_render_startup_stops_when_migration_fails(tmp_path: Path) -> None:

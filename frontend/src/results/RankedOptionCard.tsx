@@ -2,6 +2,7 @@ import type { RankedCombination } from '../api/types'
 import { formatTimeRange } from '../lib/time'
 import { ABSENCE_LABELS, TRANSPORT_LABELS } from '../sessions/labels'
 import { mapsLink } from './maps'
+import { venueAvailabilityGuidance, venueCategoryLabel } from './venueGuidance'
 import './RankedOptionCard.css'
 
 type Props = {
@@ -98,14 +99,19 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
           )}
 
           <div className="ropt__venueinfo">
-            <span>{o.venue.address}</span>
+            <span>
+              <strong>{venueCategoryLabel(o.venue.category)}</strong>
+              {o.venue.meetingPoint && <> · Meet at {o.venue.meetingPoint}</>}
+              <br />
+              {o.venue.address}
+            </span>
             <a href={mapsLink(o.venue.latitude, o.venue.longitude)} target="_blank" rel="noopener noreferrer">
               Open in Google Maps
             </a>
           </div>
           <p className="ropt__source">
             Venue data: {o.venue.dataSource}
-            {venueUpdated && ` · updated ${venueUpdated}`}. Check ActiveSG for current closures and booking details.
+            {venueUpdated && ` · updated ${venueUpdated}`}. {venueAvailabilityGuidance(o.venue.category)}
           </p>
           <p className="ropt__breakdown">
             Attendance score {o.attendanceScore} · travel score {o.travelScore}

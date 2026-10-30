@@ -108,6 +108,44 @@ Clementi Stadium is also excluded because it is closed for redevelopment from
 23–27 November 2026 closure overlaps the pilot's final assessment period.
 Current official closure evidence overrides an otherwise valid dataset match.
 
+## Picnic parks (NParks via data.gov.sg)
+
+The Picnic catalogue is a separate, activity-scoped allowlist sourced from the
+official NParks Parks GeoJSON dataset on data.gov.sg. `source_code` and
+`source_name` must match the upstream feature exactly; the app's canonical
+name, route point, public meeting point and address are reviewed fields. The
+production `data_source` label is `DATA_GOV_SG_NPARKS_PARKS`, rendered to users
+as **NParks via data.gov.sg**.
+
+Verification proves the park identity and a reasonable public meeting point on
+the date shown. It does **not** guarantee public access at a particular time,
+that a reservation is possible, that a lawn is available, or that an event is
+permitted. Users must check the linked NParks page for closures, opening
+conditions and park rules before going.
+
+| Region | Official code / source name | App name | Meeting point / address | Official evidence | Verified |
+| --- | --- | --- | --- | --- | --- |
+| West | `WJ500` / `WEST COAST PARK` | West Coast Park | West Coast Park central entrance / Parallel to West Coast Highway, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/west-coast-park) | 2026-10-30 |
+| West | `JLGCG01438` / `CHINESE GARDENS` | Chinese Garden at Jurong Lake Gardens | Chinese Garden MRT Station Exit A / 151 Boon Lay Way, Singapore 609959 | [NParks](https://juronglakegardens.nparks.gov.sg/plan-your-visit/getting-here/) | 2026-10-30 |
+| West | `WJ527` / `JURONG CENTRAL PARK` | Jurong Central Park | Entrance at Jalan Boon Lay and Boon Lay Way / Junction of Jalan Boon Lay and Boon Lay Way, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/jurong-central-park) | 2026-10-30 |
+| West | `NW502` / `CHOA CHU KANG PK` | Choa Chu Kang Park | Entrance at Choa Chu Kang Drive / Along Choa Chu Kang Drive, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/choa-chu-kang-park) | 2026-10-30 |
+| North | `NS500` / `SEMBAWANG PK` | Sembawang Park | Main entrance at Sembawang Road / Northern end of Sembawang Road, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/sembawang-park) | 2026-10-30 |
+| North | `NS502` / `LOWER SELETAR RESERVOIR PARK` | Lower Seletar Reservoir Park | Entrance at Yishun Avenue 1 / Yishun Avenue 1, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/lower-seletar-reservoir-park) | 2026-10-30 |
+| North | `PKNR001` / `WOODLANDS WATERFRONT PK` | Woodlands Waterfront Park | Entrance at Admiralty Road West / Along Admiralty Road West, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/woodlands-waterfront-park) | 2026-10-30 |
+| North | `NW512` / `ADMIRALTY PK` | Admiralty Park | Main entrance at Riverside Road / 31 Riverside Road, Singapore 730000 | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/admiralty-park) | 2026-10-30 |
+| North-east | `PKNE018` / `PUNGGOL WATERWAY PK` | Punggol Waterway Park | Entrance at Sentul Crescent / Sentul Crescent Road, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/punggol-waterway-park) | 2026-10-30 |
+| North-east | `NP544` / `SENGKANG RIVERSIDE PK` | Sengkang Riverside Park | Entrance at Anchorvale Street / Junction of Anchorvale Street and Sungei Punggol, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/sengkang-riverside-park) | 2026-10-30 |
+| North-east | `NP500` / `PUNGGOL PK` | Punggol Park | Entrance at Hougang Avenue 8 and 10 / Junction of Hougang Avenue 8 and Hougang Avenue 10, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/punggol-park) | 2026-10-30 |
+| North-east | `ET500` / `PASIR RIS PK` | Pasir Ris Park | Entrance at Pasir Ris Green / Pasir Ris Green, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/pasir-ris-park) | 2026-10-30 |
+| Central-south | `NA502` / `BISHAN-ANG MO KIO PARK (POND GARDENS)` | Bishan-Ang Mo Kio Park | Entrance at Bishan Road and Ang Mo Kio Avenue 1 / Bishan Road and Ang Mo Kio Avenue 1, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/bishan-ang-mo-kio-park) | 2026-10-30 |
+| Central-south | `SF506` / `FORT CANNING PARK` | Fort Canning Park | Fort Canning Centre area / Canning Rise, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/fort-canning-park) | 2026-10-30 |
+| Central-south | `HH020` / `HORTPARK` | HortPark | HortPark Visitor Services Centre / 33 Hyderabad Road, Singapore 119578 | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/hortpark) | 2026-10-30 |
+| Central-south | `WT502` / `MOUNT FABER PARK` | Mount Faber Park | Entrance at Kampong Bahru Road / Kampong Bahru Road and Telok Blangah Road, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/mount-faber-park) | 2026-10-30 |
+| Central-south | `SO506` / `ESPLANADE PK` | Esplanade Park | Entrance at Connaught Drive / Connaught Drive, opposite the Padang, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/esplanade-park) | 2026-10-30 |
+| East | `EE504` / `EAST COAST PARK AREA E` | East Coast Park | Central park navigation point / East Coast Park Service Road, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/east-coast-park) | 2026-10-30 |
+| East | `EK501` / `BEDOK RESERVOIR PK` | Bedok Reservoir Park | Entrance at Bedok Reservoir Road / Bedok Reservoir Road, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/bedok-reservoir-park) | 2026-10-30 |
+| East | `EC500` / `CHANGI BEACH PK` | Changi Beach Park | Entrance at Nicoll Drive / Nicoll Drive, Singapore | [NParks](https://www.nparks.gov.sg/visit/parks/park-detail/changi-beach-park) | 2026-10-30 |
+
 ## Maintenance procedure
 
 1. Match the exact data.gov.sg `VenueName` and six-digit `PostalCode`.
@@ -122,3 +160,6 @@ Current official closure evidence overrides an otherwise valid dataset match.
    evidence.
 7. Do not add condominiums, uniformed-service sites, unnamed rows, or any venue
    known to be under long-term closure.
+8. Picnic parks use `backend/app/data/verified_public_picnic_parks.json` and
+   must match both the official NParks feature code and name. Do not infer park
+   suitability from a search result or an unreviewed polygon alone.

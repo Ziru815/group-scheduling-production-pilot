@@ -11,6 +11,7 @@ from app.controllers import router
 from app.controllers.web_api import router as web_router
 from app.core.config import settings
 from app.core.database import create_db_and_tables, database_is_ready
+from app.services.activity_availability import ActivityUnavailableError
 from app.static_site import mount_static_site
 
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +52,26 @@ async def validation_error(_: Request, exc: RequestValidationError):
     )
 
 
+@app.exception_handler(ActivityUnavailableError)
+async def activity_unavailable(_: Request, exc: ActivityUnavailableError):
+    message = str(exc)
+    if exc.field_name is not None:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "VALIDATION_FAILED",
+                    "message": "Please fix the highlighted fields.",
+                    "fields": {exc.field_name: message},
+                }
+            },
+        )
+    return JSONResponse(
+        status_code=409,
+        content={"error": {"code": "ACTIVITY_UNSUPPORTED", "message": message}},
+    )
+
+
 @app.get("/health", tags=["system"])
 def health(): return {"status": "ok", "service": settings.app_name}
 
@@ -64,6 +85,8 @@ def ready():
 
 def _error_code(status_code: int, detail: str) -> str:
     lower = detail.lower()
+    if "activity is not currently supported" in lower:
+        return "ACTIVITY_UNSUPPORTED"
     if status_code == 401:
         return "UNAUTHENTICATED"
     if status_code == 403:

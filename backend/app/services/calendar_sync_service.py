@@ -285,7 +285,11 @@ class CalendarSyncService:
                     end=slot.end_date_time,
                     timezone=item.timezone,
                     transparency="opaque",
-                    location=venue.address,
+                    location=(
+                        f"{venue.meeting_point}, {venue.address}"
+                        if venue.meeting_point
+                        else venue.address
+                    ),
                     private_metadata={
                         "session_id": str(session_id),
                         "combination_id": str(combination.combination_id),

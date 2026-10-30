@@ -153,6 +153,48 @@ Islandwide basketball and football rollout evidence (redacted):
 | Basketball west/east coverage | `PASS — Juying Secondary School Hall / Our Tampines Hub` | 2026-10-30 23:19 +08 |
 | Football west/east coverage | `PASS — Westwood Secondary School Field / East Spring Secondary School Field` | 2026-10-30 23:19 +08 |
 
+### Picnic park catalogue — Render Shell procedure
+
+The park catalogue is intentionally manual and is never part of application
+startup. Deploy the code first and wait for the web service to become healthy.
+Then open the Render Shell for the web service and run:
+
+```bash
+cd /app/backend
+python -m scripts.sync_parks --dry-run
+```
+
+Expected aggregate evidence includes `source_features=462`,
+`curated_parks=20`, and `matched_parks=20`. Counts may change upstream, but
+`matched_parks` must remain exactly 20. If the adapter rejects the download,
+the schema changes, or any reviewed identity is missing, stop: no database
+write has occurred and the running web service remains available.
+
+After reviewing the dry run:
+
+```bash
+python -m scripts.sync_parks --apply
+python -m scripts.sync_parks --apply
+```
+
+The second apply is the idempotency check: it must insert no additional park
+rows and must not increase the twenty active Picnic venues. Verify `/health`
+and `/ready`, then create a Picnic Session with three distinct origins and
+confirm that ranked options identify Park, meeting point, public address,
+`NParks via data.gov.sg`, and the non-guarantee guidance.
+
+The catalogue contract requires exactly twenty reviewed parks, so a normal
+withdrawal must replace the withdrawn park with another fully reviewed NParks
+park in the same change. Update its evidence row, deploy, run the dry-run, and
+apply once. The source-isolated transaction deactivates only the obsolete
+`DATA_GOV_SG_NPARKS_PARKS` row and its Picnic support; sports venues are
+untouched. To restore the former park, perform the reverse reviewed replacement,
+then deploy, dry-run, and apply. Do not attempt a nineteen-entry sync and never
+use ad-hoc production SQL for a normal catalogue withdrawal.
+
+A failed park sync rolls back its transaction. It does not restart, replace, or
+take down the already-running web service.
+
 ### 5. Google callback
 
 - [ ] Add the exact Railway origin as an authorised JavaScript origin.

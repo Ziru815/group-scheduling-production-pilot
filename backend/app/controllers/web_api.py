@@ -50,6 +50,7 @@ from app.schemas.web import (
     WebSessionUpdate,
 )
 from app.services.application_services import SessionService, _bump_revision, _ensure_active, _get_session_or_404
+from app.services.activity_availability import production_support_required, require_mutable_activity
 from app.services.authentication_service import AuthenticationService
 from app.services.authorization_service import require_member, require_organiser
 from app.services.integrated_recommendation_service import IntegratedRecommendationService
@@ -285,6 +286,7 @@ def web_update_session(payload: WebSessionUpdate, session_id: UUID, db: Session 
     require_organiser(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     zone = session_zone(item.timezone)
     current_start = item.date_range_start.replace(tzinfo=zone) if item.date_range_start.tzinfo is None else item.date_range_start.astimezone(zone)
     current_end = item.date_range_end.replace(tzinfo=zone) if item.date_range_end.tzinfo is None else item.date_range_end.astimezone(zone)
@@ -465,6 +467,9 @@ async def retry_calendar_sync(
     user: UserAccount = Depends(current_web_user),
     calendar_adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
 ):
+    require_organiser(db, session_id, user)
+    item = _get_session_or_404(db, session_id)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if not settings.google_calendar_enabled:
         return CalendarSyncSummary().to_api()
     return (
@@ -577,6 +582,9 @@ async def calendar_busy(
     user: UserAccount = Depends(current_web_user),
     adapter: GoogleCalendarAdapter = Depends(get_google_calendar_adapter),
 ):
+    require_member(db, session_id, user)
+    item = _get_session_or_404(db, session_id)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if not settings.google_calendar_enabled:
         return {"status": "UNAVAILABLE", "busy": []}
     if settings.use_mock_providers:

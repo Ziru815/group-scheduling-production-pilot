@@ -57,6 +57,7 @@ from app.recommender.types import (
 )
 from app.services.application_services import _as_utc, _ensure_active, _get_session_or_404
 from app.services.authorization_service import require_organiser
+from app.services.activity_availability import production_support_required, require_mutable_activity
 from app.services.calendar_sync_service import CalendarSyncService
 
 
@@ -94,6 +95,7 @@ class IntegratedRecommendationService:
         require_organiser(db, session_id, user)
         item = _get_session_or_404(db, session_id)
         _ensure_active(item)
+        require_mutable_activity(db, item, require_verified=production_support_required())
         snapshot_revision = item.source_revision
         request = _build_request(db, item)
         provider = _provider()

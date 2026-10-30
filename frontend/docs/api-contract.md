@@ -44,6 +44,7 @@
 | `NOT_FOUND` | 404 | Unknown resource, or not a member |
 | `INVITATION_INVALID` | 404 | Unknown or revoked invitation token (UC-05.EX.1) |
 | `VALIDATION_FAILED` | 422 | Field errors in `fields` |
+| `ACTIVITY_UNSUPPORTED` | 409 | A historical Session's activity no longer has active verified venue support, so it is read-only |
 | `SESSION_CLOSED` | 409 | Deadline passed, or Session cancelled or confirmed |
 | `NO_RESPONSES` | 409 | UC-09 precondition: no valid response yet |
 | `NO_FEASIBLE_TIMESLOT` | 409 | UC-09.AC.1: no timeslot meets the minimum attendees |
@@ -140,6 +141,7 @@ interface SessionDetail {
   id: string
   name: string                                     // ⚠ not in SRS entity; see open question 7
   activityType: { id: string; name: string; category: string }
+  activitySupported: boolean                       // false keeps historical Session readable but read-only
   organiserName: string
   status: SessionStatus
   myRole: ParticipantRole                          // caller's role
@@ -190,7 +192,9 @@ On callback the backend creates or matches the User Account by Google subject, r
 ### 4.2 Activity catalogue
 
 #### 4. `GET /api/activity-types`
-`200`, active types only (`IsActive = TRUE`), grouped for the chip groups:
+`200`, grouped for the chip groups. In production this includes only active
+types with at least one active, publicly verified supported venue. Development
+mock mode preserves all active reference types:
 ```json
 [
   { "category": "Sports", "types": [ { "id": "at-football", "name": "Football" }, { "id": "at-badminton", "name": "Badminton" } ] },
@@ -245,6 +249,7 @@ Side effects: the caller becomes the Organiser **and** a Participant (`role: ORG
 |---|---|
 | `name` | required, ≤ 80 chars |
 | `activityTypeId` | an active Activity Type |
+| `activityTypeId` (production) | must also have at least one active, publicly verified supported venue; otherwise `422 VALIDATION_FAILED` with `fields.activityTypeId` |
 | `startDate` / `endDate` | valid dates, start ≥ today (in `timezone`), end ≥ start |
 | `dailyStartTime` / `dailyEndTime` | `HH:mm`, end > start |
 | `durationMinutes` | integer 15–480 (FR-A1.1) and ≤ the daily window |
@@ -282,10 +287,10 @@ Request `{ "token": "Zk3…" }`. `200`:
   "organiserName": "Farhan", "status": "ACTIVE",
   "startDate": "2026-11-13", "endDate": "2026-11-14", "timezone": "Asia/Singapore",
   "responseDeadline": "2026-11-10T12:00:00+08:00",
-  "isClosed": false, "alreadyJoined": false
+  "isClosed": false, "alreadyJoined": false, "activitySupported": true
 }
 ```
-`404 INVITATION_INVALID`. A closed Session still returns `200` with `isClosed: true` so the frontend can show its status (UC-05.AC.1).
+`404 INVITATION_INVALID`. A closed Session still returns `200` with `isClosed: true` so the frontend can show its status (UC-05.AC.1). A historical activity without verified venue support returns `activitySupported: false`; it remains readable but cannot be joined or mutated.
 
 #### 12. `POST /api/invitations/join`
 Request `{ "token": "Zk3…" }`. `200` `{ "sessionId": "s-1", "participantId": "p-9" }`.

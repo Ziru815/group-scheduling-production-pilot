@@ -223,7 +223,7 @@ function seed(): MockDb {
   ]
 
   // Public Venue data (§5.5). Addresses and coordinates are approximate mock values.
-  const demoVenueProvenance = { dataSource: 'Demo catalogue', lastUpdated: null } as const
+  const demoVenueProvenance = { dataSource: 'Demo catalogue', lastUpdated: null, meetingPoint: null } as const
   const venues: MockDb['venues'] = [
     {
       ...demoVenueProvenance,
@@ -269,6 +269,7 @@ function seed(): MockDb {
       ...demoVenueProvenance,
       id: 'v-westcoast-park',
       name: 'West Coast Park',
+      meetingPoint: 'Car Park 3 entrance',
       category: 'PARK',
       address: 'West Coast Ferry Road, Singapore 126978',
       latitude: 1.295,
@@ -279,6 +280,7 @@ function seed(): MockDb {
       ...demoVenueProvenance,
       id: 'v-jl-gardens',
       name: 'Jurong Lake Gardens',
+      meetingPoint: 'Lakeside Garden main entrance',
       category: 'PARK',
       address: 'Yuan Ching Road, Singapore 618661',
       latitude: 1.3381,

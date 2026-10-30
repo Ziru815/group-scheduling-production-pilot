@@ -128,6 +128,7 @@ class Venue(SQLModel, table=True):
     name: str = Field(index=True, max_length=180)
     category: VenueCategory = Field(sa_column=enum_column(VenueCategory, VenueCategory.SPORTS_FACILITY))
     address: str = Field(max_length=300)
+    meeting_point: Optional[str] = Field(default=None, max_length=180)
     postal_code: Optional[str] = Field(default=None, max_length=6)
     latitude: float
     longitude: float

@@ -7,6 +7,7 @@ import type { SessionDetail } from '../api/types'
 import { StatusMessage } from '../components/StatusMessage'
 import { formatDateTime, formatTimeRange } from '../lib/time'
 import { mapsLink } from '../results/maps'
+import { venueAvailabilityGuidance, venueCategoryLabel } from '../results/venueGuidance'
 import './ConfirmedPage.css'
 
 /**
@@ -111,6 +112,10 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
           Where
         </h3>
         <p className="confirmed__address">{plan.venue.address}</p>
+        <p className="confirmed__address">
+          <strong>{venueCategoryLabel(plan.venue.category)}</strong>
+          {plan.venue.meetingPoint && <> · Meet at {plan.venue.meetingPoint}</>}
+        </p>
         <a
           className="confirmed__map"
           href={mapsLink(plan.venue.latitude, plan.venue.longitude)}
@@ -140,8 +145,9 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
 
       {/* FR-E5 / UC-12 step 3: the System must not imply the venue is booked (§5.2). */}
       <p className="confirmed__booking">
-        <strong>The venue isn't booked yet.</strong> Booking it is up to the group, through the venue's own booking
-        channel. Live availability isn't guaranteed.
+        <strong>The venue isn't booked or reserved by this app.</strong> {venueAvailabilityGuidance(plan.venue.category)}
+        {' '}Venue data: {plan.venue.dataSource}
+        {plan.venue.lastUpdated && ` · updated ${new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium' }).format(new Date(plan.venue.lastUpdated))}`}.
       </p>
 
       <section className="confirmed__calendar" aria-labelledby="confirmed-calendar">
@@ -162,7 +168,7 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
             {retryCalendar.error.message}
           </p>
         )}
-        {calendarSync.canRetry && (
+        {calendarSync.canRetry && session.activitySupported && (
           <button
             type="button"
             className="confirmed__calendar-retry"

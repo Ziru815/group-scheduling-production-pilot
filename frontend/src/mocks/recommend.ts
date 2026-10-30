@@ -207,6 +207,7 @@ export function rank(db: MockDb, session: MockSession, set: MockRecommendationSe
         name: venue.name,
         category: venue.category,
         address: venue.address,
+        meetingPoint: venue.meetingPoint,
         latitude: venue.latitude,
         longitude: venue.longitude,
         dataSource: venue.dataSource,

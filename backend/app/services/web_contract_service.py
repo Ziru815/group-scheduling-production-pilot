@@ -37,6 +37,12 @@ from app.models import (
 )
 from app.repositories import AvailabilityRepository, ParticipantRepository, SessionRepository
 from app.schemas.web import SaveResponseRequest
+from app.services.activity_availability import (
+    activity_is_supported,
+    production_support_required,
+    require_mutable_activity,
+    supported_activity_categories,
+)
 from app.services.application_services import _bump_revision, _ensure_active, _get_session_or_404, _utcnow
 from app.services.authorization_service import require_member, require_organiser
 from app.services.calendar_sync_service import CalendarSyncService
@@ -55,11 +61,10 @@ def local_datetime(value: datetime, timezone_name: str) -> datetime:
 
 
 def activity_categories(db: Session) -> list[dict]:
-    activities = list(db.exec(select(ActivityType).where(ActivityType.is_active == True).order_by(ActivityType.category, ActivityType.name)).all())  # noqa: E712
-    grouped: dict[str, list[dict]] = {}
-    for activity in activities:
-        grouped.setdefault(activity.category.title(), []).append({"id": activity.activity_type_id, "name": activity.name})
-    return [{"category": category, "types": values} for category, values in grouped.items()]
+    return supported_activity_categories(
+        db,
+        require_verified=production_support_required(),
+    )
 
 
 def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> dict:
@@ -75,6 +80,11 @@ def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> d
         "id": item.session_id,
         "name": item.name,
         "activityType": {"id": activity.activity_type_id, "name": activity.name, "category": activity.category.title()},
+        "activitySupported": activity_is_supported(
+            db,
+            item.activity_type_id,
+            require_verified=production_support_required(),
+        ),
         "organiserName": organiser.display_name,
         "status": item.status.value,
         "myRole": member.role.value,
@@ -148,6 +158,11 @@ def invitation_preview(db: Session, user: UserAccount, token: str) -> dict:
         "responseDeadline": deadline,
         "isClosed": item.status != SessionStatus.ACTIVE or _utcnow() > _as_utc(deadline),
         "alreadyJoined": existing is not None,
+        "activitySupported": activity_is_supported(
+            db,
+            item.activity_type_id,
+            require_verified=production_support_required(),
+        ),
     }
 
 
@@ -164,6 +179,7 @@ def save_response(db: Session, user: UserAccount, session_id: UUID, data: SaveRe
     participant = require_member(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if _utcnow() > _as_utc(local_datetime(item.response_deadline, item.timezone)):
         raise HTTPException(409, "Response deadline has passed")
     repo = AvailabilityRepository(db)
@@ -234,6 +250,7 @@ def withdraw_response(db: Session, user: UserAccount, session_id: UUID) -> dict:
     participant = require_member(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if _utcnow() > _as_utc(local_datetime(item.response_deadline, item.timezone)):
         raise HTTPException(409, "Response deadline has passed")
     record = AvailabilityRepository(db).current(participant.participant_id)
@@ -336,6 +353,7 @@ def confirm_plan(db: Session, user: UserAccount, session_id: UUID, combination_i
     require_organiser(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if item.recommendations_source_revision != item.source_revision:
         raise HTTPException(409, "Recommendations are stale")
     combo = db.get(Combination, combination_id)
@@ -456,6 +474,8 @@ def _venue(venue: Venue) -> dict:
     source_label = (
         "Sport Singapore via data.gov.sg"
         if venue.data_source == "DATA_GOV_SG_SPORT_FACILITIES"
+        else "NParks via data.gov.sg"
+        if venue.data_source == "DATA_GOV_SG_NPARKS_PARKS"
         else "Demo catalogue"
         if venue.data_source == "DEMO"
         else venue.data_source
@@ -464,6 +484,7 @@ def _venue(venue: Venue) -> dict:
         "id": venue.venue_id,
         "name": venue.name,
         "category": venue.category.value,
+        "meetingPoint": venue.meeting_point,
         "address": venue.address,
         "latitude": venue.latitude,
         "longitude": venue.longitude,

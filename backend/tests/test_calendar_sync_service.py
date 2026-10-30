@@ -132,6 +132,7 @@ def _confirmed_sync_fixture(tmp_path):
             name="Bishan Sports Hall",
             category=VenueCategory.SPORTS_FACILITY,
             address="5 Bishan Street 14, Singapore 579783",
+            meeting_point="Main entrance",
             postal_code="579783",
             latitude=1.3547,
             longitude=103.8518,
@@ -329,7 +330,7 @@ async def test_sync_confirmed_creates_attendee_events_and_cleans_every_hold(tmp_
         assert all(row.event_status == EventStatus.DELETED for row in holds)
         opaque_calls = [call for call in adapter.upserts if call[2].transparency == "opaque"]
         assert len(opaque_calls) == 2
-        assert all(call[2].location == "5 Bishan Street 14, Singapore 579783" for call in opaque_calls)
+        assert all(call[2].location == "Main entrance, 5 Bishan Street 14, Singapore 579783" for call in opaque_calls)
         assert all(call[2].private_metadata["event_type"] == "CONFIRMED_EVENT" for call in opaque_calls)
         assert adapter.provider_transaction_states
         assert not any(adapter.provider_transaction_states)
