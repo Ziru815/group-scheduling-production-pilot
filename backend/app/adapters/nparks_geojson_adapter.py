@@ -22,6 +22,9 @@ ACCEPTED_CONTENT_TYPES = frozenset(
         "application/json",
         "application/geo+json",
         "application/vnd.geo+json",
+        # data.gov.sg currently serves the signed GeoJSON blob with this MIME.
+        # Host/path, byte-size, JSON schema, identity, and geometry checks still apply.
+        "binary/octet-stream",
     }
 )
 

@@ -220,6 +220,26 @@ async def test_load_parks_rejects_non_json_content_type_and_declared_oversize():
         await source.aclose()
 
 
+@pytest.mark.asyncio
+async def test_load_parks_accepts_observed_data_gov_binary_content_type():
+    def handler(request: httpx.Request):
+        if request.url.path == POLL_PATH:
+            return httpx.Response(201, json=poll())
+        return httpx.Response(
+            200,
+            content=json.dumps(collection([feature()])).encode(),
+            headers={"content-type": "binary/octet-stream"},
+        )
+
+    source = adapter(handler)
+    try:
+        parks = await source.load_parks()
+    finally:
+        await source.aclose()
+
+    assert [park.source_code for park in parks] == ["P001"]
+
+
 class OversizedStream(httpx.AsyncByteStream):
     async def __aiter__(self):
         yield b"x" * (MAX_DOWNLOAD_BYTES // 2 + 1)
