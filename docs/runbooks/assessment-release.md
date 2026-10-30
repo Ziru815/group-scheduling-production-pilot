@@ -47,9 +47,9 @@ Most recent automated verification:
 
 | Check | Result | Date |
 | --- | --- | --- |
-| Backend test suite | `PASS — 208 tests` | 2026-10-30 |
-| Frontend lint | `PASS` | 2026-10-30 |
-| Frontend production build | `PASS` | 2026-10-30 |
+| Backend test suite | `PASS — 256 tests` | 2026-10-31 |
+| Frontend lint | `PASS` | 2026-10-31 |
+| Frontend production build | `PASS` | 2026-10-31 |
 | Railway IaC typecheck | `PASS` | 2026-10-28 |
 | Live data.gov.sg dry run | `PASS` | 2026-10-30 |
 
@@ -152,6 +152,18 @@ Islandwide basketball and football rollout evidence (redacted):
 | Supported verified venue counts | `PASS — Badminton 20 / Basketball 20 / Football 20` | 2026-10-30 23:18 +08 |
 | Basketball west/east coverage | `PASS — Juying Secondary School Hall / Our Tampines Hub` | 2026-10-30 23:19 +08 |
 | Football west/east coverage | `PASS — Westwood Secondary School Field / East Spring Secondary School Field` | 2026-10-30 23:19 +08 |
+
+Verified Picnic park rollout evidence (redacted):
+
+| Check | Result | Timestamp |
+| --- | --- | --- |
+| Release commit | `758d1a7f7dd53521ef7f45653aca08055d6be35c` | 2026-10-31 00:34 +08 |
+| Render deployed the release commit | `PASS` | 2026-10-31 00:34 +08 |
+| Public `/ready` returned HTTP 200 | `PASS` | 2026-10-31 00:34 +08 |
+| Live data.gov.sg dry run | `PASS — 462 source / 20 curated / 20 matched` | 2026-10-31 00:31 +08 |
+| First production park apply | `PASS — 20 inserted / 0 updated / 0 deactivated / 20 verified` | 2026-10-31 00:32 +08 |
+| Idempotent second park apply | `PASS — 0 inserted / 0 updated / 0 deactivated / 20 verified` | 2026-10-31 00:32 +08 |
+| Production activity catalogue | `PASS — Outdoors → Picnic visible; Leisure hidden` | 2026-10-31 00:33 +08 |
 
 ### Picnic park catalogue — Render Shell procedure
 
