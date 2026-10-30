@@ -112,7 +112,9 @@ PostgreSQL `DATABASE_URL` reference.
 - [ ] Run `python -m scripts.sync_venues --dry-run` and review counts.
 - [ ] Run `python -m scripts.sync_venues --apply` once against production.
 - [ ] Re-run `--apply`; inserted count must be zero and venue count must not grow.
-- [ ] Confirm exactly twenty current allowlist entries are `VERIFIED_PUBLIC`.
+- [ ] Confirm exactly 58 current allowlist entries are `VERIFIED_PUBLIC`.
+- [ ] Confirm Badminton, Basketball, and Football each expose exactly twenty
+  verified venues.
 
 | Measurement | Dry run | First apply | Second apply |
 | --- | ---: | ---: | ---: |
@@ -120,8 +122,8 @@ PostgreSQL `DATABASE_URL` reference.
 | Recognized rows | 2,571 | n/a | n/a |
 | Rejected rows | 14,024 | n/a | n/a |
 | Normalized venues | 1,581 | n/a | n/a |
-| Verified venues | 20 | 20 | 20 |
-| Unverified venues | 1,561 | 1,561 | 1,561 |
+| Verified venues | 58 | 58 | 58 |
+| Unverified venues | 1,523 | 1,523 | 1,523 |
 | Inserted / updated / deactivated | n/a | 0 / 1,581 / 0 | 0 / 1,581 / 0 |
 
 Islandwide badminton rollout evidence (redacted):

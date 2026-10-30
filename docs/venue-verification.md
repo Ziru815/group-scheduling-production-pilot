@@ -3,15 +3,18 @@
 This register explains the evidence behind the production venue allowlist.
 The data.gov.sg Sport Facilities dataset supplies the source identity, postal
 code, coordinates, and facility labels. An official ActiveSG page must also
-identify the location as a public badminton facility before the app can mark it
-`VERIFIED_PUBLIC`. A school hall qualifies only when its official ActiveSG page
-contains a public badminton booking entry.
+identify the location as a public facility for the activity recorded in
+`verified_activities` before the app can mark it `VERIFIED_PUBLIC`. A school
+hall or field qualifies only when ActiveSG lists that exact location and
+activity for public use.
 
-Verification evidence is activity-scoped. The twelve venues added on
-2026-10-30 declare `verified_activities: ["Badminton"]`, so any basketball or
-football rows sharing the same dataset venue remain unavailable until those
-activities receive their own review. Older entries without this field preserve
-their existing multi-sport behaviour.
+Verification evidence is activity-scoped. The twelve Badminton additions and
+the thirty-eight Basketball/Football additions made on 2026-10-30 declare only
+the reviewed activity, so other raw facility rows sharing the same dataset
+venue remain unavailable until separately reviewed. Older entries without this
+field preserve their existing multi-sport behaviour. The register now contains
+58 verified identities and exposes twenty venues for each of Badminton,
+Basketball, and Football.
 
 Verification means that the venue is a real public facility and that the
 dataset identity matched on the date shown. It does **not** mean that a court is
@@ -42,12 +45,68 @@ ActiveSG.
 | Frontier Primary School | Frontier Primary School Hall | 648200 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/frontier-primary-school-hall) | 2026-10-30 |
 | Queenstown Primary School | Queenstown Primary School Hall | 149303 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/queenstown-primary-school-hall) | 2026-10-30 |
 
+## Basketball additions
+
+The following nineteen activity-scoped additions join the existing verified
+Clementi Sport Centre record, producing twenty Basketball venues.
+
+| Dataset source identity | App display name | Postal code | Official evidence | Verified on |
+| --- | --- | --- | --- | --- |
+| Ahmad Ibrahim Primary School | Ahmad Ibrahim Primary School Hall | 768643 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/ahmad-ibrahim-primary-school-hall) | 2026-10-30 |
+| Bukit Canberra Sport Centre | Bukit Canberra Sport Hall | 756973 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bukit-canberra-sport-hall) | 2026-10-30 |
+| Northbrooks Secondary School | Northbrooks Secondary School Hall | 768692 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/northbrooks-secondary-school-hall) | 2026-10-30 |
+| Woodgrove Secondary School | Woodgrove Secondary School Hall | 738990 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/woodgrove-secondary-school-hall) | 2026-10-30 |
+| Bishan Clubhouse | Bishan Clubhouse | 579780 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bishan-clubhouse) | 2026-10-30 |
+| Bukit Merah Secondary School | Bukit Merah Secondary School Hall | 159050 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bukit-merah-secondary-school-hall) | 2026-10-30 |
+| Fairfield Methodist School (Primary) | Fairfield Methodist Primary School Hall | 139648 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/fairfield-methodist-primary-school-hall) | 2026-10-30 |
+| MOE HQ (Evans Road) | MOE (Evans) Sport Hall | 259366 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/moe-evans-sport-hall) | 2026-10-30 |
+| Nan Hua High School | Nan Hua High School Hall | 129956 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/nan-hua-high-school-hall) | 2026-10-30 |
+| Queenstown Secondary School | Queenstown Secondary School Hall | 148800 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/queenstown-secondary-school-hall) | 2026-10-30 |
+| Bedok Green Secondary School | Bedok Green Secondary School Hall | 469722 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bedok-green-secondary-school-hall) | 2026-10-30 |
+| Our Tampines Hub | Our Tampines Hub - Team Sports Hall | 528523 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/tampines-sport-hall) | 2026-10-30 |
+| Tanjong Katong Primary School | Tanjong Katong Primary School Hall | 437259 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/tanjong-katong-primary-school-hall) | 2026-10-30 |
+| Telok Kurau Primary School | Telok Kurau Primary School Hall | 479239 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/telok-kurau-primary-school-hall) | 2026-10-30 |
+| Victoria School | Victoria School Hall | 448880 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/victoria-school-hall) | 2026-10-30 |
+| Choa Chu Kang Stadium | Choa Chu Kang Sport Hall | 689236 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/choa-chu-kang-sport-hall) | 2026-10-30 |
+| Jurong West Stadium | Jurong West Sport Hall | 648965 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/jurong-west-sport-hall) | 2026-10-30 |
+| Juying Secondary School | Juying Secondary School Hall | 649038 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/juying-secondary-school-hall) | 2026-10-30 |
+| West Spring Primary School | West Spring Primary School Hall | 679946 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/west-spring-primary-school-hall) | 2026-10-30 |
+
+## Football additions
+
+The following nineteen activity-scoped additions join the existing verified
+Hougang Sport Hall record, producing twenty Football venues.
+
+| Dataset source identity | App display name | Postal code | Official evidence | Verified on |
+| --- | --- | --- | --- | --- |
+| Sport Village @ Jurong Town | ActiveSG Sport Village @ Jurong Town | 619618 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/activesg-sport-village-jurong-town) | 2026-10-30 |
+| Bukit Gombak Stadium | Bukit Gombak Stadium | 659081 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bukit-gombak-stadium) | 2026-10-30 |
+| Westwood Secondary School | Westwood Secondary School Field | 648350 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/westwood-secondary-school-field) | 2026-10-30 |
+| Jurong East Stadium | Jurong East Stadium | 609517 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/jurong-east-stadium) | 2026-10-30 |
+| Anderson Secondary School | Anderson Secondary School Field | 569206 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/anderson-secondary-school-field) | 2026-10-30 |
+| Canberra Primary School | Canberra Primary School Field | 757714 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/canberra-primary-school-field) | 2026-10-30 |
+| Woodlands Stadium | Woodlands Stadium | 738597 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/woodlands-stadium) | 2026-10-30 |
+| Yishun Stadium | Yishun Stadium | 769131 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/yishun-stadium) | 2026-10-30 |
+| Bishan Stadium | Bishan Stadium | 579784 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bishan-stadium) | 2026-10-30 |
+| Bowen Secondary School | Bowen Secondary School Field | 547529 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bowen-secondary-school-field) | 2026-10-30 |
+| Horizon Primary School | Horizon Primary School Field | 828819 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/horizon-primary-school-field) | 2026-10-30 |
+| Punggol Cove Primary School | Punggol Cove Primary School Field | 828674 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/punggol-cove-primary-school-field) | 2026-10-30 |
+| Bedok South Secondary School | Bedok South Secondary School Field | 468585 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bedok-south-secondary-school-field) | 2026-10-30 |
+| Junyuan Primary School | Junyuan Primary School Field | 528906 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/junyuan-primary-school-field) | 2026-10-30 |
+| East Spring Secondary School | East Spring Secondary School Field | 529231 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/east-spring-secondary-school-field) | 2026-10-30 |
+| Meridian Secondary School | Meridian Secondary School Field | 518901 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/meridian-secondary-school-field) | 2026-10-30 |
+| Bartley Secondary School | Bartley Secondary School Field | 538403 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bartley-secondary-school-field) | 2026-10-30 |
+| Bendemeer Primary School | Bendemeer Primary School Field | 339948 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/bendemeer-primary-school-field) | 2026-10-30 |
+| Blangah Rise Primary School | Blangah Rise Primary School Field | 109100 | [ActiveSG](https://www.activesgcircle.gov.sg/facilities/blangah-rise-primary-school-field) | 2026-10-30 |
+
 ## Explicit exclusion
 
 Toa Payoh Sport Centre is not in the allowlist. Its official ActiveSG page says
 the entire facility is closed for redevelopment from 31 October 2023 to 2030.
-The implementation plan originally named it as a candidate, but a current
-official closure is stronger evidence than that older planning assumption.
+Clementi Stadium is also excluded because it is closed for redevelopment from
+1 July 2026 to Q2 2029. Serangoon Stadium was replaced because its announced
+23–27 November 2026 closure overlaps the pilot's final assessment period.
+Current official closure evidence overrides an otherwise valid dataset match.
 
 ## Maintenance procedure
 
@@ -58,7 +117,8 @@ official closure is stronger evidence than that older planning assumption.
    `backend/app/data/verified_public_sports_venues.json`.
 5. Record every activity covered by that evidence in `verified_activities`.
    Do not infer support for other activities from rows sharing the same venue.
-6. A school hall must have an official ActiveSG badminton facility page with a
-   public booking entry. A raw school dataset row is not sufficient evidence.
+6. A school hall or field must appear in ActiveSG's official catalogue for the
+   exact activity being enabled. A raw school dataset row is not sufficient
+   evidence.
 7. Do not add condominiums, uniformed-service sites, unnamed rows, or any venue
    known to be under long-term closure.

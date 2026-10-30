@@ -170,5 +170,423 @@
     "verification_url": "https://www.activesgcircle.gov.sg/facilities/queenstown-primary-school-hall",
     "verified_on": "2026-10-30",
     "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "448752a771fe107ba8a131624cdf33c8ffa169eb28dcb0c4975ca0a7284142c9",
+    "source_name": "Ahmad Ibrahim Primary School",
+    "postal_code": "768643",
+    "canonical_name": "Ahmad Ibrahim Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/ahmad-ibrahim-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "a7af08a389cce913f075c444b19479f859d3786af73eb72e1d2051f432aeff4a",
+    "source_name": "Bukit Canberra Sport Centre",
+    "postal_code": "756973",
+    "canonical_name": "Bukit Canberra Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bukit-canberra-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "dff1ff027a60d630083ef3e8b8c7882d6712af9e9d0805831c444eb28cac8ee1",
+    "source_name": "Northbrooks Secondary School",
+    "postal_code": "768692",
+    "canonical_name": "Northbrooks Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/northbrooks-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "78d6b51062712e1b786d4198290a9cfd2b501c8474930a30eee5cb4fc1beb2aa",
+    "source_name": "Woodgrove Secondary School",
+    "postal_code": "738990",
+    "canonical_name": "Woodgrove Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/woodgrove-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "018b31e0870874950f6b48495865e51637e56e6ae70f2eb88d7f6fddc19d5351",
+    "source_name": "Bishan Clubhouse",
+    "postal_code": "579780",
+    "canonical_name": "Bishan Clubhouse",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bishan-clubhouse",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "3cec6d8f81dfebfca12d4d567d8d71f3cdcb616f86ef7c27b9c4001816600233",
+    "source_name": "Bukit Merah Secondary School",
+    "postal_code": "159050",
+    "canonical_name": "Bukit Merah Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bukit-merah-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "cc8e472faef66413a41c20e6495c512f8080f8b640e7b3502e81b23d00a87846",
+    "source_name": "Fairfield Methodist School (Primary)",
+    "postal_code": "139648",
+    "canonical_name": "Fairfield Methodist Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/fairfield-methodist-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "036a0d77341427f0cfcfe8113e0c87018a5d00a92daec47f971f465aab9470af",
+    "source_name": "MOE HQ (Evans Road)",
+    "postal_code": "259366",
+    "canonical_name": "MOE (Evans) Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/moe-evans-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "05585f395ec96b3b76c2bb743bdd54c65ae964bb4928cf61dae6006d516ee75a",
+    "source_name": "Nan Hua High School",
+    "postal_code": "129956",
+    "canonical_name": "Nan Hua High School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/nan-hua-high-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "ecaf86c573ea706c96099733de651ece40499eccd8f5aa343cdabc1d4809f75b",
+    "source_name": "Queenstown Secondary School",
+    "postal_code": "148800",
+    "canonical_name": "Queenstown Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/queenstown-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "906f124e09beb8196a087975404abe1f6207fec4f5b95d4a82333b1c16012700",
+    "source_name": "Bedok Green Secondary School",
+    "postal_code": "469722",
+    "canonical_name": "Bedok Green Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bedok-green-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "8d89a45cec5bd9fa7726bb5fb46df75b9e02758a7a14da4efd6e67f29de39071",
+    "source_name": "Our Tampines Hub",
+    "postal_code": "528523",
+    "canonical_name": "Our Tampines Hub - Team Sports Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/tampines-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "2bc79314e8e4751da4f462f93fd6629c8a347bbe8ac0cc25f006d9fc21a95ba0",
+    "source_name": "Tanjong Katong Primary School",
+    "postal_code": "437259",
+    "canonical_name": "Tanjong Katong Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/tanjong-katong-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "c59b9d99271fb3eac5961ad89b9b08e4c225cb8dd0fcc490187d9b73fa2e329c",
+    "source_name": "Telok Kurau Primary School",
+    "postal_code": "479239",
+    "canonical_name": "Telok Kurau Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/telok-kurau-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "1156fc65bbf335b64e91bd6e27743a68878993faaf701a696f2c0eaccfc55f22",
+    "source_name": "Victoria School",
+    "postal_code": "448880",
+    "canonical_name": "Victoria School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/victoria-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "e076450caa35278c1de445274e2afc40f45bee03b7a6fa0f9c5ea458ce44d416",
+    "source_name": "Choa Chu Kang Stadium",
+    "postal_code": "689236",
+    "canonical_name": "Choa Chu Kang Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/choa-chu-kang-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "35c9fd16f1fdc62f703bffa938d92f3d181f1ce893accfaa9652f238ef112181",
+    "source_name": "Jurong West Stadium",
+    "postal_code": "648965",
+    "canonical_name": "Jurong West Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/jurong-west-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "4e860498bb0b87961b3bd94cb976350d3e11932574aa215750947efc20067284",
+    "source_name": "Juying Secondary School",
+    "postal_code": "649038",
+    "canonical_name": "Juying Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/juying-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "c5f3c549d44b16606891f93e2f8972639fc0cfe55cd7257b48169f7f71269059",
+    "source_name": "West Spring Primary School",
+    "postal_code": "679946",
+    "canonical_name": "West Spring Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/west-spring-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Basketball"
+    ]
+  },
+  {
+    "source_key": "b50faab63f601b7f054403d953c61dc3c412b3a791660d23c8b79d080d2ec843",
+    "source_name": "Sport Village @ Jurong Town",
+    "postal_code": "619618",
+    "canonical_name": "ActiveSG Sport Village @ Jurong Town",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/activesg-sport-village-jurong-town",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "d7a9ef9109934c982f672ffd29cd0594a8cef6928df45b91716488b6a0294a80",
+    "source_name": "Bukit Gombak Stadium",
+    "postal_code": "659081",
+    "canonical_name": "Bukit Gombak Stadium",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bukit-gombak-stadium",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "9a21c34506d97db6684630077fa56ec6f0b15f20642c2425d5b5e3c319f6eac2",
+    "source_name": "Westwood Secondary School",
+    "postal_code": "648350",
+    "canonical_name": "Westwood Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/westwood-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "6f68349b283088c5db56b1999c48179d75fb0d2105f9f874cf65cba3e4525809",
+    "source_name": "Jurong East Stadium",
+    "postal_code": "609517",
+    "canonical_name": "Jurong East Stadium",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/jurong-east-stadium",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "26d312d01fb2f7c5a477eedacd3ca840c054102f9b95a70792481c8379d1ef52",
+    "source_name": "Anderson Secondary School",
+    "postal_code": "569206",
+    "canonical_name": "Anderson Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/anderson-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "a4fc422aab89cc688dff263b54bfae9401306ddbce1449e39e72921c295e4466",
+    "source_name": "Canberra Primary School",
+    "postal_code": "757714",
+    "canonical_name": "Canberra Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/canberra-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "cc92ca98a3e5e5a3d3b40376fcae031672a863afdafce8870672786dad66574b",
+    "source_name": "Woodlands Stadium",
+    "postal_code": "738597",
+    "canonical_name": "Woodlands Stadium",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/woodlands-stadium",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "7f9a01b81398216bb7f7972f8682c7c2f5bcbb6289619a00a61ab21c9c03a0f8",
+    "source_name": "Yishun Stadium",
+    "postal_code": "769131",
+    "canonical_name": "Yishun Stadium",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/yishun-stadium",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "569aeba58d398958a8a734f320245ebab5143486ea15efeeab47afb1a49489c3",
+    "source_name": "Bishan Stadium",
+    "postal_code": "579784",
+    "canonical_name": "Bishan Stadium",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bishan-stadium",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "e12f525feb1e74820bb0b161c8d5b229820f08f33b9af078ff73511ccada95ef",
+    "source_name": "Bowen Secondary School",
+    "postal_code": "547529",
+    "canonical_name": "Bowen Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bowen-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "74c902098771f074251707c53d1e7d1d49b7241e8cd3a5d9361b59034cfea146",
+    "source_name": "Horizon Primary School",
+    "postal_code": "828819",
+    "canonical_name": "Horizon Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/horizon-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "305a4c1f8751a34c3bda52bba9b015d31309ee6c81af7d2ff1ed0e9df260b37d",
+    "source_name": "Punggol Cove Primary School",
+    "postal_code": "828674",
+    "canonical_name": "Punggol Cove Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/punggol-cove-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "f7fdfbd734d5f39277f22f67f22ac5e2f22f901f79292693ce80db111b78e170",
+    "source_name": "Bedok South Secondary School",
+    "postal_code": "468585",
+    "canonical_name": "Bedok South Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bedok-south-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "6a55f49970f781c9bbf352ef4f171aaeef6ee6201137b6e9fa9f62fafbe871bd",
+    "source_name": "Junyuan Primary School",
+    "postal_code": "528906",
+    "canonical_name": "Junyuan Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/junyuan-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "70e6b49df53664336ef6da15f3a0ed12e72324d36d8e5d5cee573c96e25dc1b6",
+    "source_name": "East Spring Secondary School",
+    "postal_code": "529231",
+    "canonical_name": "East Spring Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/east-spring-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "5834c6784348850bd089b80467d9fe8db0eebb584200abd84365bfab212ff111",
+    "source_name": "Meridian Secondary School",
+    "postal_code": "518901",
+    "canonical_name": "Meridian Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/meridian-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "962cb458fe3b2bad6914154557675620d4ff8ceaad66ea116c3e0c95d2e3c977",
+    "source_name": "Bartley Secondary School",
+    "postal_code": "538403",
+    "canonical_name": "Bartley Secondary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bartley-secondary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "c4863db40eb40a91bb9035b0d16ecb2ba76c0369204cefeb7547f601f146299c",
+    "source_name": "Bendemeer Primary School",
+    "postal_code": "339948",
+    "canonical_name": "Bendemeer Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bendemeer-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
+  },
+  {
+    "source_key": "da2a46d8338cdb92f390b359f3cc620cc237dbef4b17cc252b1953b3995c9e3e",
+    "source_name": "Blangah Rise Primary School",
+    "postal_code": "109100",
+    "canonical_name": "Blangah Rise Primary School Field",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/blangah-rise-primary-school-field",
+    "verified_on": "2026-10-30",
+    "verified_activities": [
+      "Football"
+    ]
   }
 ]
