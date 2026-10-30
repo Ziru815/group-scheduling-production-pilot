@@ -47,11 +47,11 @@ Most recent automated verification:
 
 | Check | Result | Date |
 | --- | --- | --- |
-| Backend test suite | `PASS — 140 tests` | 2026-10-28 |
-| Frontend lint | `PASS` | 2026-10-28 |
-| Frontend production build | `PASS` | 2026-10-28 |
+| Backend test suite | `PASS — 208 tests` | 2026-10-30 |
+| Frontend lint | `PASS` | 2026-10-30 |
+| Frontend production build | `PASS` | 2026-10-30 |
 | Railway IaC typecheck | `PASS` | 2026-10-28 |
-| Live data.gov.sg dry run | `PASS` | 2026-10-28 |
+| Live data.gov.sg dry run | `PASS` | 2026-10-30 |
 
 ## Provisioning checklist
 
@@ -120,9 +120,19 @@ PostgreSQL `DATABASE_URL` reference.
 | Recognized rows | 2,571 | n/a | n/a |
 | Rejected rows | 14,024 | n/a | n/a |
 | Normalized venues | 1,581 | n/a | n/a |
-| Verified venues | 20 | `TBD` | `TBD` |
-| Unverified venues | 1,561 | `TBD` | `TBD` |
-| Inserted / updated / deactivated | n/a | `TBD` | `TBD` |
+| Verified venues | 20 | 20 | 20 |
+| Unverified venues | 1,561 | 1,561 | 1,561 |
+| Inserted / updated / deactivated | n/a | 0 / 1,581 / 0 | 0 / 1,581 / 0 |
+
+Islandwide badminton rollout evidence (redacted):
+
+| Check | Result | Timestamp |
+| --- | --- | --- |
+| Release commit | `e769527863d8851a07a73aca849008b125a87ffa` | 2026-10-30 22:15 +08 |
+| Render deployed the release commit | `PASS` | 2026-10-30 22:15 +08 |
+| Public `/ready` returned HTTP 200 | `PASS` | 2026-10-30 22:15 +08 |
+| Two production catalogue applies were idempotent | `PASS` | 2026-10-30 22:15 +08 |
+| West/east recommendation sets differed and surfaced new nearby venues | `PASS` | 2026-10-30 22:15 +08 |
 
 ### 5. Google callback
 
