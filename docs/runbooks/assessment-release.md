@@ -109,12 +109,12 @@ PostgreSQL `DATABASE_URL` reference.
 
 - [ ] Pre-deploy `alembic upgrade head` succeeds.
 - [ ] `python -m scripts.seed_reference_data` reports no demo data.
-- [ ] Run `python -m scripts.sync_venues --dry-run` and review counts.
-- [ ] Run `python -m scripts.sync_venues --apply` once against production.
-- [ ] Re-run `--apply`; inserted count must be zero and venue count must not grow.
-- [ ] Confirm exactly 58 current allowlist entries are `VERIFIED_PUBLIC`.
-- [ ] Confirm Badminton, Basketball, and Football each expose exactly twenty
-  verified venues.
+- [x] Run `python -m scripts.sync_venues --dry-run` and review counts.
+- [x] Run `python -m scripts.sync_venues --apply` once against production.
+- [x] Re-run `--apply`; inserted count must be zero and venue count must not grow.
+- [x] Confirm exactly 58 current allowlist entries are `VERIFIED_PUBLIC`.
+- [x] Confirm Badminton, Basketball, and Football each expose exactly twenty
+  supported verified venues.
 
 | Measurement | Dry run | First apply | Second apply |
 | --- | ---: | ---: | ---: |
@@ -126,6 +126,11 @@ PostgreSQL `DATABASE_URL` reference.
 | Unverified venues | 1,523 | 1,523 | 1,523 |
 | Inserted / updated / deactivated | n/a | 0 / 1,581 / 0 | 0 / 1,581 / 0 |
 
+The table above records the observed 2026-10-30 production results, not
+pre-deployment estimates. `Supported verified venues` excludes activity links
+that the source catalogue lists for a location but the verified evidence marks
+as unavailable.
+
 Islandwide badminton rollout evidence (redacted):
 
 | Check | Result | Timestamp |
@@ -135,6 +140,18 @@ Islandwide badminton rollout evidence (redacted):
 | Public `/ready` returned HTTP 200 | `PASS` | 2026-10-30 22:15 +08 |
 | Two production catalogue applies were idempotent | `PASS` | 2026-10-30 22:15 +08 |
 | West/east recommendation sets differed and surfaced new nearby venues | `PASS` | 2026-10-30 22:15 +08 |
+
+Islandwide basketball and football rollout evidence (redacted):
+
+| Check | Result | Timestamp |
+| --- | --- | --- |
+| Release commit | `284e773a94f6c7efc3ab1ba0defc51cd2fdcc17e` | 2026-10-30 23:10 +08 |
+| Render deployed the release commit | `PASS` | 2026-10-30 23:10 +08 |
+| Public `/ready` returned HTTP 200 | `PASS` | 2026-10-30 23:10 +08 |
+| Two production catalogue applies were idempotent | `PASS — 0 inserted / 1,581 updated / 0 deactivated` | 2026-10-30 23:13 +08 |
+| Supported verified venue counts | `PASS — Badminton 20 / Basketball 20 / Football 20` | 2026-10-30 23:18 +08 |
+| Basketball west/east coverage | `PASS — Juying Secondary School Hall / Our Tampines Hub` | 2026-10-30 23:19 +08 |
+| Football west/east coverage | `PASS — Westwood Secondary School Field / East Spring Secondary School Field` | 2026-10-30 23:19 +08 |
 
 ### 5. Google callback
 
