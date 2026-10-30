@@ -258,6 +258,92 @@ def test_sync_inserts_verified_venue_and_is_idempotent():
         assert links[0].activity_type_id == badminton.activity_type_id
 
 
+def test_sync_exposes_only_activity_scoped_verified_links(tmp_path):
+    source_name = "Scoped School Hall"
+    postal_code = "123456"
+    source_key = venue_source_key(source_name, postal_code)
+    allowlist_path = tmp_path / "verified-venues.json"
+    allowlist_path.write_text(
+        json.dumps(
+            [
+                {
+                    "source_key": source_key,
+                    "source_name": source_name,
+                    "postal_code": postal_code,
+                    "canonical_name": "Scoped School Hall",
+                    "verification_url": (
+                        "https://www.activesgcircle.gov.sg/facilities/"
+                        "scoped-school-hall"
+                    ),
+                    "verified_on": "2026-10-30",
+                    "verified_activities": ["Badminton"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    multi_sport = normalize_facilities(
+        [
+            source_row(
+                1,
+                venue_name=source_name,
+                postal_code=postal_code,
+                sports_facility="Badminton Court",
+            ),
+            source_row(
+                2,
+                venue_name=source_name,
+                postal_code=postal_code,
+                sports_facility="Basketball Court",
+            ),
+            source_row(
+                3,
+                venue_name=source_name,
+                postal_code=postal_code,
+                sports_facility="Football Field",
+            ),
+        ]
+    )[0]
+    engine = catalogue_engine()
+
+    with Session(engine) as session:
+        badminton, basketball, football = add_activities(
+            session, "Badminton", "Basketball", "Football"
+        )
+        VenueCatalogSyncService(load_verified_venue_allowlist(allowlist_path)).sync(
+            session,
+            [multi_sport],
+            synced_at=datetime(2026, 10, 30, tzinfo=timezone.utc),
+        )
+
+        activity_name_by_id = {
+            row.activity_type_id: row.name
+            for row in (badminton, basketball, football)
+        }
+        status_by_activity = {
+            activity_name_by_id[link.activity_type_id]: link.support_status
+            for link in session.exec(select(VenueActivity)).all()
+        }
+        repository = VenueRepository(session)
+
+        assert status_by_activity == {
+            "Badminton": SupportStatus.SUPPORTED,
+            "Basketball": SupportStatus.UNAVAILABLE,
+            "Football": SupportStatus.UNAVAILABLE,
+        }
+        assert len(
+            repository.supported_for_activity(
+                badminton.activity_type_id, require_verified=True
+            )
+        ) == 1
+        assert repository.supported_for_activity(
+            basketball.activity_type_id, require_verified=True
+        ) == []
+        assert repository.supported_for_activity(
+            football.activity_type_id, require_verified=True
+        ) == []
+
+
 def test_sync_updates_coordinates_and_keeps_unknown_metadata_null():
     engine = catalogue_engine()
     with Session(engine) as session:

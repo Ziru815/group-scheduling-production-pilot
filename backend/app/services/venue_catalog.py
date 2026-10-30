@@ -65,6 +65,7 @@ class VerifiedVenueEvidence:
     canonical_name: str
     verification_url: str
     verified_on: date
+    verified_activities: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -132,6 +133,11 @@ def load_verified_venue_allowlist(
             canonical_name=raw["canonical_name"],
             verification_url=raw["verification_url"],
             verified_on=date.fromisoformat(raw["verified_on"]),
+            verified_activities=(
+                tuple(raw["verified_activities"])
+                if "verified_activities" in raw
+                else None
+            ),
         )
         expected_key = venue_source_key(item.source_name, item.postal_code)
         if item.source_key != expected_key:
@@ -260,15 +266,22 @@ class VenueCatalogSyncService:
                         VenueActivity.venue_id == venue.venue_id
                     )
                 )
+                supported_activities = set(source.activities)
+                if evidence and evidence.verified_activities is not None:
+                    supported_activities = set(evidence.verified_activities)
                 db.add_all(
                     [
                         VenueActivity(
                             venue_id=venue.venue_id,
                             activity_type_id=activity_rows[name].activity_type_id,
-                            support_status=SupportStatus.SUPPORTED,
+                            support_status=(
+                                SupportStatus.SUPPORTED
+                                if name in supported_activities
+                                else SupportStatus.UNAVAILABLE
+                            ),
                             source_reference=(
                                 evidence.verification_url
-                                if evidence
+                                if evidence and name in supported_activities
                                 else "data.gov.sg Sport Facilities"
                             ),
                         )

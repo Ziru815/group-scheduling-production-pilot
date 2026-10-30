@@ -62,5 +62,113 @@
     "canonical_name": "Yishun Sport Hall",
     "verification_url": "https://www.activesgcircle.gov.sg/facilities/yishun-sport-hall",
     "verified_on": "2026-10-28"
+  },
+  {
+    "source_key": "bcf949449ddb791248ad18aea827d9feec4e40546f9299a5b243e88386cbc530",
+    "source_name": "Bukit Gombak Sport Hall",
+    "postal_code": "659088",
+    "canonical_name": "Bukit Gombak Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/bukit-gombak-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "749a5a0c1220f474a2a532911483e08da1b0fc65570221b4c11db3432e8620cf",
+    "source_name": "Senja-Cashew Sport Hall",
+    "postal_code": "679910",
+    "canonical_name": "Senja-Cashew Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/senja-cashew-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "3edafcfc99ade2738effbff56107f7a8bfaecf301a8a9c63767f3943d5a7dba0",
+    "source_name": "Woodlands Sport Hall",
+    "postal_code": "738620",
+    "canonical_name": "Woodlands Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/woodlands-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "538bb5f7659dc55319d7f611e32813395ac9691f382c4e71dbab02a48d3dfd6f",
+    "source_name": "Yio Chu Kang Sport Hall",
+    "postal_code": "569780",
+    "canonical_name": "Yio Chu Kang Sport Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/yio-chu-kang-sport-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "63db8faf2c4cd5190b3ea741913683798222481b4530a7311cd9e7949cdd1d89",
+    "source_name": "Admiralty Primary School",
+    "postal_code": "738907",
+    "canonical_name": "Admiralty Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/admiralty-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "a73b61722629d024e0d634f50a7218a3b124f4f5879c20d808d1415419a01cc1",
+    "source_name": "Greendale Primary School",
+    "postal_code": "828848",
+    "canonical_name": "Greendale Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/greendale-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "a9e9e7cc0b36a5575f5026af08b66e942646438d3182767fd2ca7cd91e05bd27",
+    "source_name": "North Vista Secondary School",
+    "postal_code": "545081",
+    "canonical_name": "North Vista Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/north-vista-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "33a4e8fe7f94fc1c53a5e04c9af195829727364f910ddbb8a616161fa6dfe909",
+    "source_name": "Junyuan Secondary School",
+    "postal_code": "528933",
+    "canonical_name": "Junyuan Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/junyuan-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "53fb45e2b02ba214967a096fea9f32161639d38bec83c43486c9acd0f28c6c36",
+    "source_name": "Dunman High School",
+    "postal_code": "436895",
+    "canonical_name": "Dunman High School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/dunman-high-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "d4440db61d9cfae772736b86185c9969fb8a7bab9da77a6459d46a2c805e5bbe",
+    "source_name": "Boon Lay Secondary School",
+    "postal_code": "648354",
+    "canonical_name": "Boon Lay Secondary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/boon-lay-secondary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "89b6794f284dc971fc07b17cb34511db8913bad62703625d4eef15d2e29c9f55",
+    "source_name": "Frontier Primary School",
+    "postal_code": "648200",
+    "canonical_name": "Frontier Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/frontier-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
+  },
+  {
+    "source_key": "14da4825b2f37cb92b17611f37cfd709b0a8d22581e738527e398602af463277",
+    "source_name": "Queenstown Primary School",
+    "postal_code": "149303",
+    "canonical_name": "Queenstown Primary School Hall",
+    "verification_url": "https://www.activesgcircle.gov.sg/facilities/queenstown-primary-school-hall",
+    "verified_on": "2026-10-30",
+    "verified_activities": ["Badminton"]
   }
 ]

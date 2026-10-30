@@ -112,7 +112,7 @@ PostgreSQL `DATABASE_URL` reference.
 - [ ] Run `python -m scripts.sync_venues --dry-run` and review counts.
 - [ ] Run `python -m scripts.sync_venues --apply` once against production.
 - [ ] Re-run `--apply`; inserted count must be zero and venue count must not grow.
-- [ ] Confirm exactly eight current allowlist entries are `VERIFIED_PUBLIC`.
+- [ ] Confirm exactly twenty current allowlist entries are `VERIFIED_PUBLIC`.
 
 | Measurement | Dry run | First apply | Second apply |
 | --- | ---: | ---: | ---: |
@@ -120,8 +120,8 @@ PostgreSQL `DATABASE_URL` reference.
 | Recognized rows | 2,571 | n/a | n/a |
 | Rejected rows | 14,024 | n/a | n/a |
 | Normalized venues | 1,581 | n/a | n/a |
-| Verified venues | 8 | `TBD` | `TBD` |
-| Unverified venues | 1,573 | `TBD` | `TBD` |
+| Verified venues | 20 | `TBD` | `TBD` |
+| Unverified venues | 1,561 | `TBD` | `TBD` |
 | Inserted / updated / deactivated | n/a | `TBD` | `TBD` |
 
 ### 5. Google callback
