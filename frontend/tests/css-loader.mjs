@@ -6,5 +6,16 @@ export async function load(url, context, nextLoad) {
       source: 'export default {}',
     }
   }
+  if (url.endsWith('/src/api/client.ts')) {
+    return {
+      format: 'module',
+      shortCircuit: true,
+      source: `
+        const unavailable = () => Promise.reject(new Error('Unexpected API call in component test'))
+        export const api = { get: unavailable, post: unavailable, patch: unavailable, put: unavailable }
+        export const isApiError = () => false
+      `,
+    }
+  }
   return nextLoad(url, context)
 }
