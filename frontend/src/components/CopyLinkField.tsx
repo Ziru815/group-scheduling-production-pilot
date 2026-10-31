@@ -100,7 +100,7 @@ export function CopyLinkField({ id, label, url, shareTitle, shareText, message, 
             marginSize={4}
             size={220}
           />
-          <p>Scan to open the invitation</p>
+          <p>Show this code so people nearby can scan and join. For online sharing, copy the invitation message.</p>
         </div>
       )}
     </div>

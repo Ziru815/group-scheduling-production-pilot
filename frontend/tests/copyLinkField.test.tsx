@@ -72,17 +72,23 @@ test('keeps the QR hidden until the organiser expands it', async () => {
   const rendered = await renderField(async () => undefined)
   try {
     assert.equal(rendered.container.querySelector('svg'), null)
+    assert.doesNotMatch(rendered.container.textContent ?? '', /people nearby/i)
+    assert.doesNotMatch(rendered.container.textContent ?? '', /online sharing/i)
 
     const toggle = button(rendered.container, 'Show QR code')
     assert.equal(toggle.getAttribute('aria-expanded'), 'false')
     await click(toggle)
 
     assert.ok(rendered.container.querySelector('svg'))
-    assert.match(rendered.container.textContent ?? '', /Scan to open the invitation/)
+    assert.equal(rendered.container.querySelector('svg title')?.textContent, 'Invitation QR code')
+    assert.match(rendered.container.textContent ?? '', /people nearby/i)
+    assert.match(rendered.container.textContent ?? '', /online sharing/i)
     assert.equal(button(rendered.container, 'Hide QR code').getAttribute('aria-expanded'), 'true')
 
     await click(button(rendered.container, 'Hide QR code'))
     assert.equal(rendered.container.querySelector('svg'), null)
+    assert.doesNotMatch(rendered.container.textContent ?? '', /people nearby/i)
+    assert.doesNotMatch(rendered.container.textContent ?? '', /online sharing/i)
   } finally {
     await cleanup(rendered)
   }
