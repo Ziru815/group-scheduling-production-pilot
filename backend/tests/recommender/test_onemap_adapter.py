@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import httpx
+import pytest
 
 from app.adapters.onemap import OneMapAdapter
 from app.adapters.ports import Geocoder, Router
@@ -160,23 +162,155 @@ def test_token_is_fetched_once_and_reused(run):
     assert calls == {"token": 1, "route": 3}
 
 
-def test_rejected_token_is_dropped_for_next_call(run):
-    state = {"tokens": 0}
+def test_refresh_credentials_take_precedence_over_static_token(run):
+    seen = {"tokens": 0, "authorization": []}
+    expiry = (datetime.now(timezone.utc) + timedelta(days=3)).timestamp()
 
     def handler(req: httpx.Request):
         if req.url.path.endswith("getToken"):
-            state["tokens"] += 1
-            return httpx.Response(200, json={"access_token": f"t{state['tokens']}", "expiry_timestamp": "9999999999"})
-        return httpx.Response(401) if req.headers["Authorization"] == "Bearer t1" else httpx.Response(
-            200, json={"route_summary": {"total_time": 120}}
-        )
+            seen["tokens"] += 1
+            return httpx.Response(200, json={"access_token": "fresh", "expiry_timestamp": str(int(expiry))})
+        seen["authorization"].append(req.headers["Authorization"])
+        return httpx.Response(200, json={"route_summary": {"total_time": 60}})
 
-    a = adapter(handler, email="e", password="p")
+    a = adapter(handler, email="team@example.com", password="secret", token="fixed")
     when = datetime(2026, 11, 7, 9, tzinfo=SGT)
 
     async def twice():
         return [await a.route(BISHAN, AMK, TransportMode.WALK, when) for _ in range(2)]
 
-    first, second = run(twice())
-    assert first.status is RoutingStatus.UNAVAILABLE
-    assert second.status is RoutingStatus.AVAILABLE and second.minutes == 2
+    results = run(twice())
+
+    assert all(result.status is RoutingStatus.AVAILABLE for result in results)
+    assert seen == {"tokens": 1, "authorization": ["Bearer fresh", "Bearer fresh"]}
+
+
+@pytest.mark.parametrize(
+    ("email", "password"),
+    [(None, "secret"), ("team@example.com", None)],
+)
+def test_partial_refresh_credentials_fall_back_to_static_token(run, email, password):
+    seen = {"tokens": 0, "authorization": []}
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("getToken"):
+            seen["tokens"] += 1
+            return httpx.Response(500)
+        seen["authorization"].append(req.headers["Authorization"])
+        return httpx.Response(200, json=SEARCH_HIT)
+
+    result = run(adapter(handler, email=email, password=password, token="fixed").geocode("579827"))
+
+    assert result.status is GeocodeStatus.VALID
+    assert seen == {"tokens": 0, "authorization": ["Bearer fixed"]}
+
+
+def test_route_rejected_dynamic_token_refreshes_and_retries_once(run):
+    state = {"tokens": 0, "routes": 0}
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("getToken"):
+            state["tokens"] += 1
+            return httpx.Response(200, json={"access_token": f"t{state['tokens']}", "expiry_timestamp": "9999999999"})
+        state["routes"] += 1
+        if req.headers["Authorization"] == "Bearer t1":
+            return httpx.Response(401)
+        assert req.headers["Authorization"] == "Bearer t2"
+        return httpx.Response(200, json={"route_summary": {"total_time": 120}})
+
+    result = run(
+        adapter(handler, email="e", password="p").route(
+            BISHAN,
+            AMK,
+            TransportMode.WALK,
+            datetime(2026, 11, 7, 9, tzinfo=SGT),
+        )
+    )
+
+    assert result.status is RoutingStatus.AVAILABLE and result.minutes == 2
+    assert state == {"tokens": 2, "routes": 2}
+
+
+def test_geocode_rejected_dynamic_token_refreshes_and_retries_once(run):
+    state = {"tokens": 0, "searches": 0}
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("getToken"):
+            state["tokens"] += 1
+            return httpx.Response(200, json={"access_token": f"t{state['tokens']}", "expiry_timestamp": "9999999999"})
+        state["searches"] += 1
+        assert req.url.params["searchVal"] == "579827"
+        if req.headers["Authorization"] == "Bearer t1":
+            return httpx.Response(403)
+        assert req.headers["Authorization"] == "Bearer t2"
+        return httpx.Response(200, json=SEARCH_HIT)
+
+    result = run(adapter(handler, email="e", password="p").geocode("579827"))
+
+    assert result.status is GeocodeStatus.VALID
+    assert state == {"tokens": 2, "searches": 2}
+
+
+def test_route_rejected_refreshed_token_stops_after_one_retry(run):
+    state = {"tokens": 0, "routes": 0}
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("getToken"):
+            state["tokens"] += 1
+            return httpx.Response(200, json={"access_token": f"t{state['tokens']}", "expiry_timestamp": "9999999999"})
+        state["routes"] += 1
+        return httpx.Response(401)
+
+    result = run(
+        adapter(handler, email="e", password="p").route(
+            BISHAN,
+            AMK,
+            TransportMode.WALK,
+            datetime(2026, 11, 7, 9, tzinfo=SGT),
+        )
+    )
+
+    assert result.status is RoutingStatus.UNAVAILABLE
+    assert result.detail == "OneMap rejected the token"
+    assert state == {"tokens": 2, "routes": 2}
+
+
+def test_static_token_rejection_is_not_refreshed(run):
+    state = {"tokens": 0, "routes": 0}
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("getToken"):
+            state["tokens"] += 1
+        else:
+            state["routes"] += 1
+        return httpx.Response(401)
+
+    result = run(
+        adapter(handler, token="fixed").route(
+            BISHAN,
+            AMK,
+            TransportMode.WALK,
+            datetime(2026, 11, 7, 9, tzinfo=SGT),
+        )
+    )
+
+    assert result.status is RoutingStatus.UNAVAILABLE
+    assert result.detail == "OneMap rejected the token"
+    assert state == {"tokens": 0, "routes": 1}
+
+
+def test_concurrent_token_requests_share_one_refresh(run):
+    state = {"tokens": 0}
+
+    def handler(req: httpx.Request):
+        assert req.url.path.endswith("getToken")
+        state["tokens"] += 1
+        return httpx.Response(200, json={"access_token": "shared", "expiry_timestamp": "9999999999"})
+
+    a = adapter(handler, email="e", password="p")
+
+    async def fetch_all():
+        return await asyncio.gather(*(a._get_token() for _ in range(5)))
+
+    assert run(fetch_all()) == ["shared"] * 5
+    assert state == {"tokens": 1}
