@@ -212,6 +212,7 @@ export function rank(db: MockDb, session: MockSession, set: MockRecommendationSe
         longitude: venue.longitude,
         dataSource: venue.dataSource,
         lastUpdated: venue.lastUpdated,
+        officialUrl: venue.officialUrl,
       },
       start: c.start,
       end: c.end,

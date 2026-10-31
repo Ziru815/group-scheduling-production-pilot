@@ -174,6 +174,8 @@ export interface VenueSummary {
   /** Catalogue provenance only; this is not a live availability claim. */
   dataSource: string
   lastUpdated: IsoDateTime | null
+  /** Reviewed activity-specific provider page; never a live availability claim. */
+  officialUrl: string | null
 }
 
 /** The Organiser's final choice (FR-E4, FR-E5). */

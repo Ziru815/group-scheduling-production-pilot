@@ -7,7 +7,7 @@ import type { SessionDetail } from '../api/types'
 import { StatusMessage } from '../components/StatusMessage'
 import { formatDateTime, formatTimeRange } from '../lib/time'
 import { mapsLink } from '../results/maps'
-import { venueAvailabilityGuidance, venueCategoryLabel } from '../results/venueGuidance'
+import { venueAvailabilityGuidance, venueCategoryLabel, venueOfficialLinkLabel } from '../results/venueGuidance'
 import './ConfirmedPage.css'
 
 /**
@@ -116,14 +116,20 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
           <strong>{venueCategoryLabel(plan.venue.category)}</strong>
           {plan.venue.meetingPoint && <> · Meet at {plan.venue.meetingPoint}</>}
         </p>
-        <a
-          className="confirmed__map"
-          href={mapsLink(plan.venue.latitude, plan.venue.longitude)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in Google Maps
-        </a>
+        <div className="confirmed__venue-actions">
+          <a
+            href={mapsLink(plan.venue.latitude, plan.venue.longitude)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in Google Maps
+          </a>
+          {plan.venue.officialUrl && (
+            <a href={plan.venue.officialUrl} target="_blank" rel="noopener noreferrer">
+              {venueOfficialLinkLabel(plan.venue.category)}
+            </a>
+          )}
+        </div>
       </section>
 
       <section className="confirmed__section" aria-labelledby="confirmed-who">

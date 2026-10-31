@@ -223,7 +223,12 @@ function seed(): MockDb {
   ]
 
   // Public Venue data (§5.5). Addresses and coordinates are approximate mock values.
-  const demoVenueProvenance = { dataSource: 'Demo catalogue', lastUpdated: null, meetingPoint: null } as const
+  const demoVenueProvenance = {
+    dataSource: 'Demo catalogue',
+    lastUpdated: null,
+    meetingPoint: null,
+    officialUrl: null,
+  } as const
   const venues: MockDb['venues'] = [
     {
       ...demoVenueProvenance,

@@ -6,6 +6,10 @@ export function venueCategoryLabel(category: VenueCategory): string {
   return 'Venue'
 }
 
+export function venueOfficialLinkLabel(category: VenueCategory): string {
+  return category === 'PARK' ? 'View official park information' : 'View official venue information'
+}
+
 export function venueAvailabilityGuidance(category: VenueCategory): string {
   if (category === 'PARK') {
     return 'Public access, reservation and live availability are not guaranteed. Check NParks for current closures, opening conditions and park rules before you go.'

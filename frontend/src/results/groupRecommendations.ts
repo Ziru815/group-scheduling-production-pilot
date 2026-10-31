@@ -23,6 +23,7 @@ function groupingKey(option: RankedCombination): string {
 
   return JSON.stringify({
     venueId: option.venue.id,
+    officialUrl: option.venue.officialUrl,
     feasibilityStatus: option.feasibilityStatus,
     combinedScore: option.combinedScore,
     attendanceScore: option.attendanceScore,

@@ -32,6 +32,7 @@ function option(
       longitude: 103.708,
       dataSource: 'NParks via data.gov.sg',
       lastUpdated: '2026-10-31T00:00:00+08:00',
+      officialUrl: 'https://www.nparks.gov.sg/visit/parks/jurong-central-park',
     },
     start: new Date(start).toISOString(),
     end: new Date(start + 8 * 60 * MINUTE_MS).toISOString(),
@@ -104,6 +105,24 @@ test('keeps different attendance and routing outcomes separate', () => {
   assert.deepEqual(
     groups.map((group) => group.options[0].combinationId),
     ['original', 'different-attendee', 'different-duration', 'different-routing'],
+  )
+})
+
+test('keeps different official venue links separate', () => {
+  const reviewed = option('reviewed', 1, 0)
+  const inconsistent = option('inconsistent', 2, 15, {
+    venue: {
+      ...reviewed.venue,
+      officialUrl: 'https://www.nparks.gov.sg/visit/parks/a-different-park',
+    },
+  })
+
+  const groups = groupRankedCombinations([reviewed, inconsistent])
+
+  assert.equal(groups.length, 2)
+  assert.deepEqual(
+    groups.map((group) => group.options[0].combinationId),
+    ['reviewed', 'inconsistent'],
   )
 })
 

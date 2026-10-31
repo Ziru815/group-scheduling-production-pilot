@@ -4,7 +4,7 @@ import { formatTimeRange } from '../lib/time'
 import { ABSENCE_LABELS, TRANSPORT_LABELS } from '../sessions/labels'
 import { visibleTimeOptions } from './groupRecommendations'
 import { mapsLink } from './maps'
-import { venueAvailabilityGuidance, venueCategoryLabel } from './venueGuidance'
+import { venueAvailabilityGuidance, venueCategoryLabel, venueOfficialLinkLabel } from './venueGuidance'
 import './RankedOptionCard.css'
 
 type Props = {
@@ -165,9 +165,16 @@ export function RankedOptionCard({
               <br />
               {o.venue.address}
             </span>
-            <a href={mapsLink(o.venue.latitude, o.venue.longitude)} target="_blank" rel="noopener noreferrer">
-              Open in Google Maps
-            </a>
+            <div className="ropt__venue-actions">
+              <a href={mapsLink(o.venue.latitude, o.venue.longitude)} target="_blank" rel="noopener noreferrer">
+                Open in Google Maps
+              </a>
+              {o.venue.officialUrl && (
+                <a href={o.venue.officialUrl} target="_blank" rel="noopener noreferrer">
+                  {venueOfficialLinkLabel(o.venue.category)}
+                </a>
+              )}
+            </div>
           </div>
           <p className="ropt__source">
             Venue data: {o.venue.dataSource}

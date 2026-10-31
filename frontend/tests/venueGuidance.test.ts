@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { venueAvailabilityGuidance, venueCategoryLabel } from '../src/results/venueGuidance.ts'
+import * as venueGuidance from '../src/results/venueGuidance.ts'
+
+const { venueAvailabilityGuidance, venueCategoryLabel } = venueGuidance
 
 test('park guidance is honest about public access and NParks conditions', () => {
   const guidance = venueAvailabilityGuidance('PARK')
@@ -22,4 +24,17 @@ test('sports guidance retains ActiveSG booking language without making a live cl
   assert.match(guidance, /not guaranteed/i)
   assert.doesNotMatch(guidance, /is booked|is available/i)
   assert.equal(venueCategoryLabel('SPORTS_FACILITY'), 'Sports facility')
+})
+
+test('official information labels are specific to parks', () => {
+  const officialLinkLabel = (
+    venueGuidance as typeof venueGuidance & {
+      venueOfficialLinkLabel?: (category: 'PARK' | 'SPORTS_FACILITY' | 'MALL') => string
+    }
+  ).venueOfficialLinkLabel
+
+  assert.equal(typeof officialLinkLabel, 'function')
+  assert.equal(officialLinkLabel?.('PARK'), 'View official park information')
+  assert.equal(officialLinkLabel?.('SPORTS_FACILITY'), 'View official venue information')
+  assert.equal(officialLinkLabel?.('MALL'), 'View official venue information')
 })
