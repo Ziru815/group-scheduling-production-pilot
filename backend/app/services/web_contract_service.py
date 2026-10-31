@@ -483,7 +483,7 @@ def _official_url(db: Session, venue: Venue, activity_type_id: UUID) -> str | No
         )
     ).first()
     reference = activity.source_reference if activity else None
-    if not reference or reference != reference.strip():
+    if not reference or reference != reference.strip() or "\\" in reference:
         return None
 
     expected_host = (

@@ -245,6 +245,13 @@ def test_official_url_rejects_untrusted_or_unsupported_references(tmp_path):
         ),
         ("Park unrelated", VenueCategory.PARK, "https://example.com/park", SupportStatus.SUPPORTED, None),
         (
+            "Park browser parser bypass",
+            VenueCategory.PARK,
+            "https://evil.example\\.nparks.gov.sg/park",
+            SupportStatus.SUPPORTED,
+            None,
+        ),
+        (
             "Park wrong official family",
             VenueCategory.PARK,
             "https://www.activesgcircle.gov.sg/facilities/park",
@@ -255,6 +262,13 @@ def test_official_url_rejects_untrusted_or_unsupported_references(tmp_path):
             "Sport wrong official family",
             VenueCategory.SPORTS_FACILITY,
             "https://www.nparks.gov.sg/sport",
+            SupportStatus.SUPPORTED,
+            None,
+        ),
+        (
+            "Sport browser parser bypass",
+            VenueCategory.SPORTS_FACILITY,
+            "https://evil.example\\.activesgcircle.gov.sg/facility",
             SupportStatus.SUPPORTED,
             None,
         ),
