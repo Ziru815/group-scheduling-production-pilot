@@ -256,4 +256,3 @@ From the signed-in availability flow, search a known Singapore postal code such 
 - [ ] **Step 7: Verify exact official links in the live UI**
 
 Use an existing accessible Picnic session and a sports session, or create controlled test sessions if needed. In expanded results, confirm the Picnic link opens that park's exact NParks page and the sports link opens that facility's exact ActiveSG page. For an already-confirmed test plan, confirm the **Where** section shows the same official URL. Verify both screens still state that booking/live availability is not guaranteed, still provide Google Maps, still group equivalent times, and still prevent a non-organiser from confirming.
-
