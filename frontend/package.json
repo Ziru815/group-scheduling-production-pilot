@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts && npm run test:ui",
+    "test:ui": "TSX_TSCONFIG_PATH=tsconfig.app.json node --import ./tests/register-css-loader.mjs --import tsx --test tests/*.test.tsx",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
@@ -13,6 +14,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.3",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^7.18.4"
@@ -22,8 +24,10 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^29.1.1",
     "msw": "^3.0.3",
     "oxlint": "^1.81.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }
