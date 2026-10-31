@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import type { CreateSessionResponse } from '../api/types'
 import { CopyLinkField } from '../components/CopyLinkField'
 import { formatDateTime, formatIsoDate } from '../lib/time'
+import { buildInvitationMessage } from './invitationSharing'
 import './InviteCreated.css'
 
 type Props = {
@@ -22,6 +23,15 @@ export function InviteCreated({ result, onCreateAnother }: Props) {
     session.startDate === session.endDate
       ? formatIsoDate(session.startDate)
       : `${formatIsoDate(session.startDate)} – ${formatIsoDate(session.endDate)}`
+  const invitationMessage = buildInvitationMessage({
+    name: session.name,
+    activityName: session.activityType.name,
+    startDate: session.startDate,
+    endDate: session.endDate,
+    responseDeadline: session.responseDeadline,
+    timezone: session.timezone,
+    invitationUrl,
+  })
 
   return (
     <div className="created">
@@ -44,6 +54,8 @@ export function InviteCreated({ result, onCreateAnother }: Props) {
           url={invitationUrl}
           shareTitle={session.name}
           shareText={`Mark when you're free for ${session.name}`}
+          message={invitationMessage}
+          showQr
         />
         <p className="field__hint">
           Share it with your group chat. Anyone with the link can join after signing in with Google.

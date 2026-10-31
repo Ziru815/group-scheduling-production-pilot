@@ -80,6 +80,8 @@ export interface MockSession {
   recommendationsStale: boolean
   /** Snapshot of the confirmed option (FR-E4), so it survives later re-ranking. */
   confirmed: ConfirmedPlan | null
+  /** Dev-only provider failures used to exercise scoped retry UI. */
+  calendarSyncFailedUserIds?: Id[]
 }
 
 export interface MockLocationCandidate {
@@ -221,8 +223,15 @@ function seed(): MockDb {
   ]
 
   // Public Venue data (§5.5). Addresses and coordinates are approximate mock values.
+  const demoVenueProvenance = {
+    dataSource: 'Demo catalogue',
+    lastUpdated: null,
+    meetingPoint: null,
+    officialUrl: null,
+  } as const
   const venues: MockDb['venues'] = [
     {
+      ...demoVenueProvenance,
       id: 'v-jw-hall',
       name: 'Jurong West Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -232,6 +241,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-basketball', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-clementi-hall',
       name: 'Clementi Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -241,6 +251,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-basketball'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-gombak-hall',
       name: 'Bukit Gombak Sports Hall',
       category: 'SPORTS_FACILITY',
@@ -250,6 +261,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-badminton', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-cck-stadium',
       name: 'Choa Chu Kang Stadium',
       category: 'SPORTS_FACILITY',
@@ -259,8 +271,10 @@ function seed(): MockDb {
       activityTypeIds: ['at-football', 'at-futsal'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-westcoast-park',
       name: 'West Coast Park',
+      meetingPoint: 'Car Park 3 entrance',
       category: 'PARK',
       address: 'West Coast Ferry Road, Singapore 126978',
       latitude: 1.295,
@@ -268,8 +282,10 @@ function seed(): MockDb {
       activityTypeIds: ['at-football', 'at-picnic', 'at-cycling'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jl-gardens',
       name: 'Jurong Lake Gardens',
+      meetingPoint: 'Lakeside Garden main entrance',
       category: 'PARK',
       address: 'Yuan Ching Road, Singapore 618661',
       latitude: 1.3381,
@@ -277,6 +293,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-picnic', 'at-cycling', 'at-hiking'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jurong-point',
       name: 'Jurong Point',
       category: 'MALL',
@@ -286,6 +303,7 @@ function seed(): MockDb {
       activityTypeIds: ['at-karaoke', 'at-dinner', 'at-boardgames'],
     },
     {
+      ...demoVenueProvenance,
       id: 'v-jem',
       name: 'JEM',
       category: 'MALL',

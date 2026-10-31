@@ -1,15 +1,22 @@
+import { useState } from 'react'
 import type { RankedCombination } from '../api/types'
 import { formatTimeRange } from '../lib/time'
 import { ABSENCE_LABELS, TRANSPORT_LABELS } from '../sessions/labels'
+import { visibleTimeOptions } from './groupRecommendations'
 import { mapsLink } from './maps'
+import { venueAvailabilityGuidance, venueCategoryLabel, venueOfficialLinkLabel } from './venueGuidance'
 import './RankedOptionCard.css'
 
 type Props = {
-  option: RankedCombination
+  options: RankedCombination[]
+  selectedCombinationId: string
+  displayRank: number
   requestedMinimum: number
   timeZone: string
   expanded: boolean
+  interactionDisabled?: boolean
   onToggle: () => void
+  onSelectOption: (combinationId: string) => void
   /** The Session's confirmed choice, if this is it. */
   isConfirmed?: boolean
 }
@@ -19,24 +26,50 @@ type Props = {
  * participant's travel time and mode (FR-E2) and who can't attend (FR-E3).
  * Names and travel times only: never anyone's address (NFR-13).
  */
-export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expanded, onToggle, isConfirmed }: Props) {
+export function RankedOptionCard({
+  options,
+  selectedCombinationId,
+  displayRank,
+  requestedMinimum,
+  timeZone,
+  expanded,
+  interactionDisabled = false,
+  onToggle,
+  onSelectOption,
+  isConfirmed,
+}: Props) {
+  const [showAllTimes, setShowAllTimes] = useState(false)
+  const o = options.find((option) => option.combinationId === selectedCombinationId) ?? options[0]
+  if (!o) throw new Error('RankedOptionCard requires at least one option')
+
   const unavailable = o.feasibilityStatus === 'DATA_UNAVAILABLE'
-  const detailsId = `option-${o.combinationId}-details`
+  const detailsId = `option-${options[0].combinationId}-details`
+  const visibleTimes = visibleTimeOptions(options, showAllTimes)
   let cls = 'ropt'
   if (expanded) cls += ' ropt--expanded'
-  if (o.rank === 1 && !unavailable) cls += ' ropt--top'
+  if (displayRank === 1 && !unavailable) cls += ' ropt--top'
+  const venueUpdated = o.venue.lastUpdated
+    ? new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium' }).format(new Date(o.venue.lastUpdated))
+    : null
 
   return (
     <article className={cls}>
-      <button type="button" className="ropt__summary" aria-expanded={expanded} aria-controls={detailsId} onClick={onToggle}>
+      <button
+        type="button"
+        className="ropt__summary"
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        disabled={interactionDisabled}
+        onClick={onToggle}
+      >
         <div className="ropt__main">
           <div className="ropt__tags">
             {isConfirmed ? (
               <span className="ropt__tag ropt__tag--ok">Confirmed choice</span>
-            ) : o.rank === 1 && !unavailable ? (
+            ) : displayRank === 1 && !unavailable ? (
               <span className="ropt__tag ropt__tag--ok">Top match</span>
             ) : (
-              <span className="ropt__tag">#{o.rank}</span>
+              <span className="ropt__tag">#{displayRank}</span>
             )}
             {unavailable && <span className="ropt__tag ropt__tag--warn">Some travel times unavailable</span>}
             {!o.meetsRequestedMinimum && (
@@ -51,6 +84,7 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
             {o.attendeeCount} attending ·{' '}
             {o.averageTravelMinutes === null ? 'avg travel unavailable' : `${o.averageTravelMinutes} min avg travel`}
           </span>
+          {options.length > 1 && <span className="ropt__time-count">{options.length} time options</span>}
         </div>
         {/* With travel times missing, the score only covers part of the group, so it's de-emphasised. */}
         <div
@@ -64,6 +98,36 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
 
       {expanded && (
         <div className="ropt__details" id={detailsId}>
+          {options.length > 1 && (
+            <section className="ropt__time-picker" aria-label={`Choose a time for ${o.venue.name}`}>
+              <h4 className="ropt__subhead">Choose a time</h4>
+              <div className="ropt__times">
+                {visibleTimes.map((option) => (
+                  <button
+                    type="button"
+                    className={option.combinationId === o.combinationId ? 'ropt__time ropt__time--selected' : 'ropt__time'}
+                    aria-pressed={option.combinationId === o.combinationId}
+                    disabled={interactionDisabled}
+                    key={option.combinationId}
+                    onClick={() => onSelectOption(option.combinationId)}
+                  >
+                    {formatTimeRange(option.start, option.end, timeZone)}
+                  </button>
+                ))}
+              </div>
+              {visibleTimes.length < options.length || showAllTimes ? (
+                <button
+                  type="button"
+                  className="ropt__show-times"
+                  disabled={interactionDisabled}
+                  onClick={() => setShowAllTimes((visible) => !visible)}
+                >
+                  {showAllTimes ? 'Show fewer times' : `Show all ${options.length} times`}
+                </button>
+              ) : null}
+            </section>
+          )}
+
           <p className="ropt__why">{o.explanation}</p>
 
           <h4 className="ropt__subhead">Who's going · travel</h4>
@@ -95,11 +159,27 @@ export function RankedOptionCard({ option: o, requestedMinimum, timeZone, expand
           )}
 
           <div className="ropt__venueinfo">
-            <span>{o.venue.address}</span>
-            <a href={mapsLink(o.venue.latitude, o.venue.longitude)} target="_blank" rel="noopener noreferrer">
-              Open in Google Maps
-            </a>
+            <span>
+              <strong>{venueCategoryLabel(o.venue.category)}</strong>
+              {o.venue.meetingPoint && <> · Meet at {o.venue.meetingPoint}</>}
+              <br />
+              {o.venue.address}
+            </span>
+            <div className="ropt__venue-actions">
+              <a href={mapsLink(o.venue.latitude, o.venue.longitude)} target="_blank" rel="noopener noreferrer">
+                Open in Google Maps
+              </a>
+              {o.venue.officialUrl && (
+                <a href={o.venue.officialUrl} target="_blank" rel="noopener noreferrer">
+                  {venueOfficialLinkLabel(o.venue.category)}
+                </a>
+              )}
+            </div>
           </div>
+          <p className="ropt__source">
+            Venue data: {o.venue.dataSource}
+            {venueUpdated && ` · updated ${venueUpdated}`}. {venueAvailabilityGuidance(o.venue.category)}
+          </p>
           <p className="ropt__breakdown">
             Attendance score {o.attendanceScore} · travel score {o.travelScore}
             {o.totalTravelMinutes !== null && ` · ${o.totalTravelMinutes} min total travel, longest ${o.maxTravelMinutes} min`}

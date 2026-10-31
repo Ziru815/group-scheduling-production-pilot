@@ -76,9 +76,23 @@
   font-size: var(--text-sm);
 }
 
-.confirmed__map {
+.confirmed__venue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.confirmed__venue-actions a {
+  display: inline-flex;
+  min-height: var(--tap-target);
+  align-items: center;
   font-size: var(--text-sm);
   font-weight: 600;
+}
+
+.confirmed__venue-actions a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .confirmed__people {
@@ -120,6 +134,36 @@
   background: var(--color-warning-soft);
   color: var(--color-warning-text);
   font-size: var(--text-sm);
+}
+
+.confirmed__calendar {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+}
+
+.confirmed__calendar-error {
+  color: var(--color-danger);
+}
+
+.confirmed__calendar-retry {
+  justify-self: start;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.confirmed__calendar-retry:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 .confirmed__meta {

@@ -16,7 +16,7 @@
 | Date-times | ISO 8601 **with offset**, e.g. `"2026-11-07T09:00:00+08:00"`. |
 | Dates / times of day | `"YYYY-MM-DD"` and `"HH:mm"` (24 h), always interpreted in the Session's `timezone`. |
 | Timezone | Every Session has an IANA `timezone` (default `"Asia/Singapore"`). The frontend shows all Session times in it, never in the browser's zone (SRS §6). |
-| Auth | Google sign-in ends with an **httpOnly, Secure, SameSite=Lax session cookie** set by the backend. The frontend sends `credentials: 'include'` and never sees a token. |
+| Auth | Google sign-in uses `openid email profile` only and ends with an **httpOnly, Secure, SameSite=Lax session cookie** set by the backend. The frontend sends `credentials: 'include'` and never sees a token. Google Calendar permission is a separate future flow. |
 | CSRF | Because auth is cookie-based, please require a JSON `Content-Type` on mutating requests, or add a CSRF header we can send. Tell us which. |
 | Errors | Every non-2xx returns the error envelope in §1.1. |
 | Not signed in | Any endpoint → `401 UNAUTHENTICATED`. The frontend then sends the user to `/signin`. |
@@ -44,6 +44,7 @@
 | `NOT_FOUND` | 404 | Unknown resource, or not a member |
 | `INVITATION_INVALID` | 404 | Unknown or revoked invitation token (UC-05.EX.1) |
 | `VALIDATION_FAILED` | 422 | Field errors in `fields` |
+| `ACTIVITY_UNSUPPORTED` | 409 | A historical Session's activity no longer has active verified venue support, so it is read-only |
 | `SESSION_CLOSED` | 409 | Deadline passed, or Session cancelled or confirmed |
 | `NO_RESPONSES` | 409 | UC-09 precondition: no valid response yet |
 | `NO_FEASIBLE_TIMESLOT` | 409 | UC-09.AC.1: no timeslot meets the minimum attendees |
@@ -91,7 +92,7 @@
 | 23 | `DELETE /api/calendar/connection` | signed in | FR-B8 |
 | 24 | `POST /api/sessions/{id}/calendar-busy` | member | FR-B8, FR-B8.1 |
 
-**Mock-only, not for the backend:** `GET /api/dev/users`, `POST /api/dev/sign-in` and `POST /api/dev/calendar/connect` exist only in the MSW mocks. They stand in for the Google redirects (#2, #22) and power the dev persona switcher. Don't implement them.
+**Development-only:** `GET /api/dev/users`, `POST /api/dev/sign-in` and `POST /api/dev/calendar/connect` power the local persona/calendar demo. The production backend returns `404` for them, and production builds do not show the persona switcher.
 
 **System-side, no endpoint:** FR-B9 and FR-B10 (tentative holds created and deleted) and FR-E6 (confirmed calendar event) are backend side-effects of #19 and #20. NFR-11 (atomic withdrawal) is enforced inside #15 and #19.
 
@@ -124,6 +125,8 @@ type ExternalServiceStatus = 'RECEIVED' | 'UNAVAILABLE' | 'ERROR'
 interface VenueSummary {           // public data (§5.5)
   id: string; name: string; category: VenueCategory
   address: string; latitude: number; longitude: number
+  dataSource: string               // catalogue provenance, not live availability
+  lastUpdated: string | null        // ISO catalogue-sync timestamp
 }
 
 interface ConfirmedPlan {
@@ -138,6 +141,7 @@ interface SessionDetail {
   id: string
   name: string                                     // ⚠ not in SRS entity; see open question 7
   activityType: { id: string; name: string; category: string }
+  activitySupported: boolean                       // false keeps historical Session readable but read-only
   organiserName: string
   status: SessionStatus
   myRole: ParticipantRole                          // caller's role
@@ -157,6 +161,10 @@ interface SessionDetail {
 }
 ```
 
+`VenueSummary.dataSource` and `lastUpdated` describe catalogue provenance only.
+They do not claim that a court is currently available or bookable; clients must
+direct users to ActiveSG for current closures and booking details.
+
 ---
 
 ## 4. Endpoints
@@ -171,10 +179,12 @@ interface SessionDetail {
 `401` when signed out. The frontend calls this on load to decide whether to show `/signin`.
 
 #### 2. `GET /api/auth/google/login?next=/signin`
-A **full-page navigation**, not a fetch. The backend redirects to Google OIDC with the **basic profile scope only** (name, email). On callback it creates or matches the User Account (by GoogleAccountID), sets the session cookie, and redirects to `next`.
+A **full-page navigation**, not a fetch. The backend redirects to Google OpenID Connect with exactly `openid email profile`, a random `state`, `nonce`, and S256 PKCE challenge. It also sets a short-lived, HttpOnly, Secure, SameSite=Lax transaction cookie. The callback succeeds only when Google returns the matching state to the same browser, the transaction is unexpired, the nonce/audience/issuer match, and the email is verified.
+
+On callback the backend creates or matches the User Account by Google subject, refuses to attach an email already owned by another subject, consumes the transaction cookie, sets the application session cookie, and redirects to `next`. It does not store Google access or refresh tokens. Google Calendar is not part of sign-in and requires a separate consent flow.
 - The frontend currently always sends `next=/signin`. The sign-in page then returns the user to the page they wanted, which the frontend keeps in `sessionStorage`. This means an invitation token in a `/join/...` path never reaches the backend.
 - Still validate `next`: it must be a relative in-app path. Reject anything else (open-redirect risk) and fall back to `/signin`.
-- On consent declined (UC-00.AC.1): redirect to `/signin?error=declined`. On Google unreachable (UC-00.EX.1): redirect to `/signin?error=unavailable`.
+- On consent declined (UC-00.AC.1): redirect to `/signin?error=declined`. Expired/mismatched transactions, identity conflicts, invalid provider responses, and provider outages all redirect to `/signin?error=unavailable`; the browser message stays generic and sensitive detail remains server-side.
 
 #### 3. `POST /api/auth/logout`
 `204`. Clears the cookie.
@@ -182,7 +192,9 @@ A **full-page navigation**, not a fetch. The backend redirects to Google OIDC wi
 ### 4.2 Activity catalogue
 
 #### 4. `GET /api/activity-types`
-`200`, active types only (`IsActive = TRUE`), grouped for the chip groups:
+`200`, grouped for the chip groups. In production this includes only active
+types with at least one active, publicly verified supported venue. Development
+mock mode preserves all active reference types:
 ```json
 [
   { "category": "Sports", "types": [ { "id": "at-football", "name": "Football" }, { "id": "at-badminton", "name": "Badminton" } ] },
@@ -237,6 +249,7 @@ Side effects: the caller becomes the Organiser **and** a Participant (`role: ORG
 |---|---|
 | `name` | required, ≤ 80 chars |
 | `activityTypeId` | an active Activity Type |
+| `activityTypeId` (production) | must also have at least one active, publicly verified supported venue; otherwise `422 VALIDATION_FAILED` with `fields.activityTypeId` |
 | `startDate` / `endDate` | valid dates, start ≥ today (in `timezone`), end ≥ start |
 | `dailyStartTime` / `dailyEndTime` | `HH:mm`, end > start |
 | `durationMinutes` | integer 15–480 (FR-A1.1) and ≤ the daily window |
@@ -274,10 +287,10 @@ Request `{ "token": "Zk3…" }`. `200`:
   "organiserName": "Farhan", "status": "ACTIVE",
   "startDate": "2026-11-13", "endDate": "2026-11-14", "timezone": "Asia/Singapore",
   "responseDeadline": "2026-11-10T12:00:00+08:00",
-  "isClosed": false, "alreadyJoined": false
+  "isClosed": false, "alreadyJoined": false, "activitySupported": true
 }
 ```
-`404 INVITATION_INVALID`. A closed Session still returns `200` with `isClosed: true` so the frontend can show its status (UC-05.AC.1).
+`404 INVITATION_INVALID`. A closed Session still returns `200` with `isClosed: true` so the frontend can show its status (UC-05.AC.1). A historical activity without verified venue support returns `activitySupported: false`; it remains readable but cannot be joined or mutated.
 
 #### 12. `POST /api/invitations/join`
 Request `{ "token": "Zk3…" }`. `200` `{ "sessionId": "s-1", "participantId": "p-9" }`.

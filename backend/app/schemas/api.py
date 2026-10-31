@@ -11,7 +11,6 @@ class DTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class GoogleLoginRequest(DTO): id_token: str
 class DevLoginRequest(DTO): email: str; display_name: str
 
 

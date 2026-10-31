@@ -1,11 +1,13 @@
 import { Link, useParams } from 'react-router'
 import { isApiError } from '../api/client'
+import { useRetryCalendarSync } from '../api/hooks/calendar'
 import { useMyResponse } from '../api/hooks/myResponse'
 import { useSession } from '../api/hooks/sessions'
 import type { SessionDetail } from '../api/types'
 import { StatusMessage } from '../components/StatusMessage'
 import { formatDateTime, formatTimeRange } from '../lib/time'
 import { mapsLink } from '../results/maps'
+import { venueAvailabilityGuidance, venueCategoryLabel, venueOfficialLinkLabel } from '../results/venueGuidance'
 import './ConfirmedPage.css'
 
 /**
@@ -46,6 +48,7 @@ export function ConfirmedPage() {
 
 function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; myParticipantId: string | null }) {
   const plan = session.confirmed
+  const retryCalendar = useRetryCalendarSync(session.id)
 
   if (session.status === 'CANCELLED') {
     return (
@@ -87,6 +90,7 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
   }
 
   const going = myParticipantId !== null && plan.attendees.some((a) => a.participantId === myParticipantId)
+  const calendarSync = retryCalendar.data ?? plan.calendarSync
 
   return (
     <div className="confirmed">
@@ -108,14 +112,24 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
           Where
         </h3>
         <p className="confirmed__address">{plan.venue.address}</p>
-        <a
-          className="confirmed__map"
-          href={mapsLink(plan.venue.latitude, plan.venue.longitude)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in Google Maps
-        </a>
+        <p className="confirmed__address">
+          <strong>{venueCategoryLabel(plan.venue.category)}</strong>
+          {plan.venue.meetingPoint && <> · Meet at {plan.venue.meetingPoint}</>}
+        </p>
+        <div className="confirmed__venue-actions">
+          <a
+            href={mapsLink(plan.venue.latitude, plan.venue.longitude)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in Google Maps
+          </a>
+          {plan.venue.officialUrl && (
+            <a href={plan.venue.officialUrl} target="_blank" rel="noopener noreferrer">
+              {venueOfficialLinkLabel(plan.venue.category)}
+            </a>
+          )}
+        </div>
       </section>
 
       <section className="confirmed__section" aria-labelledby="confirmed-who">
@@ -137,9 +151,40 @@ function ConfirmedView({ session, myParticipantId }: { session: SessionDetail; m
 
       {/* FR-E5 / UC-12 step 3: the System must not imply the venue is booked (§5.2). */}
       <p className="confirmed__booking">
-        <strong>The venue isn't booked yet.</strong> Booking it is up to the group, through the venue's own booking
-        channel. Live availability isn't guaranteed.
+        <strong>The venue isn't booked or reserved by this app.</strong> {venueAvailabilityGuidance(plan.venue.category)}
+        {' '}Venue data: {plan.venue.dataSource}
+        {plan.venue.lastUpdated && ` · updated ${new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium' }).format(new Date(plan.venue.lastUpdated))}`}.
       </p>
+
+      <section className="confirmed__calendar" aria-labelledby="confirmed-calendar">
+        <h3 className="confirmed__subhead" id="confirmed-calendar">
+          Google Calendar
+        </h3>
+        <p>
+          {calendarSync.failed > 0
+            ? `The plan is confirmed, but ${calendarSync.failed} calendar ${calendarSync.failed === 1 ? 'sync needs' : 'syncs need'} another try.`
+            : calendarSync.succeeded > 0
+              ? `${calendarSync.succeeded} ${calendarSync.succeeded === 1 ? 'calendar is' : 'calendars are'} up to date.`
+              : 'The plan is confirmed. No Calendar changes were needed.'}
+          {calendarSync.notConnected > 0 &&
+            ` ${calendarSync.notConnected} ${calendarSync.notConnected === 1 ? 'person does' : 'people do'} not have Google Calendar connected.`}
+        </p>
+        {retryCalendar.isError && (
+          <p className="confirmed__calendar-error" role="alert">
+            {retryCalendar.error.message}
+          </p>
+        )}
+        {calendarSync.canRetry && session.activitySupported && (
+          <button
+            type="button"
+            className="confirmed__calendar-retry"
+            disabled={retryCalendar.isPending}
+            onClick={() => retryCalendar.mutate()}
+          >
+            {retryCalendar.isPending ? 'Retrying…' : 'Retry calendar sync'}
+          </button>
+        )}
+      </section>
 
       <p className="confirmed__meta">
         Confirmed by {session.myRole === 'ORGANISER' ? 'you' : session.organiserName} on{' '}

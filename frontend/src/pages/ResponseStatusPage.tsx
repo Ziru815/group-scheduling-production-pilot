@@ -10,6 +10,7 @@ import { GenerateError } from '../sessions/GenerateError'
 import { ParticipantList } from '../sessions/ParticipantList'
 import { ScoringControls } from '../sessions/ScoringControls'
 import { SessionSettings } from '../sessions/SessionSettings'
+import { buildInvitationMessage } from '../sessions/invitationSharing'
 import './ResponseStatusPage.css'
 
 /**
@@ -46,6 +47,17 @@ function StatusView({ session }: { session: SessionDetail }) {
     session.startDate === session.endDate
       ? formatIsoDate(session.startDate)
       : `${formatIsoDate(session.startDate)} – ${formatIsoDate(session.endDate)}`
+  const invitationMessage = invitation.data
+    ? buildInvitationMessage({
+        name: session.name,
+        activityName: session.activityType.name,
+        startDate: session.startDate,
+        endDate: session.endDate,
+        responseDeadline: session.responseDeadline,
+        timezone: session.timezone,
+        invitationUrl: invitation.data.invitationUrl,
+      })
+    : undefined
 
   return (
     <div className="rstatus">
@@ -93,6 +105,8 @@ function StatusView({ session }: { session: SessionDetail }) {
             url={invitation.data.invitationUrl}
             shareTitle={session.name}
             shareText={`Mark when you're free for ${session.name}`}
+            message={invitationMessage}
+            showQr
           />
         </section>
       )}

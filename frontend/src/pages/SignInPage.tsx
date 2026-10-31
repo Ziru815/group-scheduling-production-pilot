@@ -10,7 +10,8 @@ import './SignInPage.css'
 /** Errors the backend can send back after Google (see api-contract.md #2). */
 const CALLBACK_ERRORS: Record<string, string> = {
   declined: 'Sign-in was cancelled. You need to sign in with Google to create or join a session.',
-  unavailable: "Google sign-in isn't responding right now. Please try again in a moment.",
+  unavailable:
+    "Google sign-in couldn't be completed. Please try again, or ask your organiser if it keeps happening.",
 }
 
 /**
@@ -79,8 +80,8 @@ export function SignInPage() {
         )}
 
         <p className="signin__note">
-          We only use your Google name and email to sign you in. Your home address is never shown
-          to other participants.
+          We only request your Google name and verified email to sign you in. We don't request
+          Google Calendar access, and your home address is never shown to other participants.
         </p>
       </div>
     </main>
