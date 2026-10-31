@@ -94,12 +94,18 @@ def _seed_picnic_catalog(engine):
         ]
         db.add_all(parks)
         db.flush()
+        official_urls = {
+            "Bishan-Ang Mo Kio Park": "https://www.nparks.gov.sg/visit/parks/bishan-ang-mo-kio-park",
+            "Toa Payoh Town Park": "https://www.nparks.gov.sg/visit/parks/toa-payoh-town-park",
+            "Kallang Riverside Park": "https://www.nparks.gov.sg/visit/parks/kallang-riverside-park",
+        }
         db.add_all(
             [
                 VenueActivity(
                     venue_id=park.venue_id,
                     activity_type_id=activity.activity_type_id,
                     support_status=SupportStatus.SUPPORTED,
+                    source_reference=official_urls[park.name],
                 )
                 for park in parks
             ]
@@ -239,7 +245,16 @@ def test_three_origin_picnic_journey_is_stable_private_and_calendar_ready(tmp_pa
         assert second.status_code == 200, second.text
         first_options = first.json()["combinations"]
         second_options = second.json()["combinations"]
+        expected_official_urls = {
+            "Bishan-Ang Mo Kio Park": "https://www.nparks.gov.sg/visit/parks/bishan-ang-mo-kio-park",
+            "Toa Payoh Town Park": "https://www.nparks.gov.sg/visit/parks/toa-payoh-town-park",
+            "Kallang Riverside Park": "https://www.nparks.gov.sg/visit/parks/kallang-riverside-park",
+        }
         assert len({option["venue"]["name"] for option in first_options}) >= 2
+        assert all(
+            option["venue"]["officialUrl"] == expected_official_urls[option["venue"]["name"]]
+            for option in first_options
+        )
         assert [
             (option["rank"], option["venue"]["name"], option["start"])
             for option in first_options
@@ -289,6 +304,7 @@ def test_three_origin_picnic_journey_is_stable_private_and_calendar_ready(tmp_pa
         )
         assert confirmed.status_code == 200, confirmed.text
         assert confirmed.json()["confirmed"]["venue"]["meetingPoint"]
+        assert confirmed.json()["confirmed"]["venue"]["officialUrl"] == chosen["venue"]["officialUrl"]
         opaque = [event for _, _, event in calendar.upserts if event.transparency == "opaque"]
         assert len(opaque) == 1
         venue = confirmed.json()["confirmed"]["venue"]

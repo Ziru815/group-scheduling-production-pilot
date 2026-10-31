@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -30,10 +31,13 @@ from app.models import (
     SchedulingSession,
     SessionStatus,
     SubmissionSource,
+    SupportStatus,
     TimeslotAttendance,
     TravelEstimate,
     UserAccount,
     Venue,
+    VenueActivity,
+    VenueCategory,
 )
 from app.repositories import AvailabilityRepository, ParticipantRepository, SessionRepository
 from app.schemas.web import SaveResponseRequest
@@ -337,7 +341,7 @@ def confirmed_plan(db: Session, item: SchedulingSession, user: UserAccount) -> d
         attendees.append({"participantId": participant.participant_id, "displayName": participant.display_name})
     result = {
         "combinationId": combo.combination_id,
-        "venue": _venue(venue),
+        "venue": _venue(db, venue, item.activity_type_id),
         "start": local_datetime(slot.start_date_time, item.timezone),
         "end": local_datetime(slot.end_date_time, item.timezone),
         "attendees": attendees,
@@ -418,7 +422,7 @@ def _combination_projection(db: Session, combo: Combination, fallback_rank: int)
     return {
         "combinationId": combo.combination_id,
         "rank": combo.rank or fallback_rank,
-        "venue": _venue(venue),
+        "venue": _venue(db, venue, session.activity_type_id),
         "start": local_datetime(slot.start_date_time, session.timezone),
         "end": local_datetime(slot.end_date_time, session.timezone),
         "feasibilityStatus": combo.feasibility_status.value,
@@ -470,7 +474,48 @@ def _participant_mode(db: Session, participant_id: UUID) -> str:
     return record.transport_mode.value if record else "PUBLIC_TRANSPORT"
 
 
-def _venue(venue: Venue) -> dict:
+def _official_url(db: Session, venue: Venue, activity_type_id: UUID) -> str | None:
+    activity = db.exec(
+        select(VenueActivity).where(
+            VenueActivity.venue_id == venue.venue_id,
+            VenueActivity.activity_type_id == activity_type_id,
+            VenueActivity.support_status == SupportStatus.SUPPORTED,
+        )
+    ).first()
+    reference = activity.source_reference if activity else None
+    if not reference or reference != reference.strip():
+        return None
+
+    expected_host = (
+        "activesgcircle.gov.sg"
+        if venue.category == VenueCategory.SPORTS_FACILITY
+        else "nparks.gov.sg"
+        if venue.category == VenueCategory.PARK
+        else None
+    )
+    if expected_host is None:
+        return None
+    try:
+        parsed = urlsplit(reference)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return None
+    if (
+        parsed.scheme.lower() != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+    ):
+        return None
+    hostname = hostname.lower()
+    if hostname != expected_host and not hostname.endswith(f".{expected_host}"):
+        return None
+    return reference
+
+
+def _venue(db: Session, venue: Venue, activity_type_id: UUID) -> dict:
     source_label = (
         "Sport Singapore via data.gov.sg"
         if venue.data_source == "DATA_GOV_SG_SPORT_FACILITIES"
@@ -489,6 +534,7 @@ def _venue(venue: Venue) -> dict:
         "latitude": venue.latitude,
         "longitude": venue.longitude,
         "dataSource": source_label,
+        "officialUrl": _official_url(db, venue, activity_type_id),
         "lastUpdated": (
             _aware_utc(venue.last_synced_at) if venue.last_synced_at else None
         ),

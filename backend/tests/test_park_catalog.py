@@ -445,7 +445,9 @@ def test_park_sync_rolls_back_tenth_write_and_preserves_last_good_rows(monkeypat
         assert after == original
 
 
-def test_browser_venue_projection_labels_nparks_and_meeting_point():
+def test_browser_venue_projection_labels_nparks_and_meeting_point(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'venue-projection.db'}")
+    SQLModel.metadata.create_all(engine)
     park = Venue(
         venue_id=uuid4(),
         name="West Coast Park",
@@ -459,9 +461,15 @@ def test_browser_venue_projection_labels_nparks_and_meeting_point():
         last_synced_at=datetime(2026, 10, 31, tzinfo=timezone.utc),
         verification_status=VenueVerificationStatus.VERIFIED_PUBLIC,
     )
+    activity = ActivityType(category="SOCIAL", name="Picnic projection")
 
-    projected = _venue(park)
+    with Session(engine) as db:
+        db.add(activity)
+        db.add(park)
+        db.commit()
+        projected = _venue(db, park, activity.activity_type_id)
 
     assert projected["meetingPoint"] == "Central entrance"
     assert projected["dataSource"] == "NParks via data.gov.sg"
     assert projected["category"] == "PARK"
+    assert projected["officialUrl"] is None

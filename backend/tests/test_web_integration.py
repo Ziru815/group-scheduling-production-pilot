@@ -18,6 +18,7 @@ from app.core.database import get_db
 from app.core.security import issue_app_token
 from app.controllers.web_api import get_google_oauth_client
 from app.main import app
+from app.services import web_contract_service
 from app.models import (
     ActivityType,
     CalendarConnection,
@@ -79,7 +80,16 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
         db.flush()
         db.add_all(
             [
-                VenueActivity(venue_id=venue.venue_id, activity_type_id=activity.activity_type_id, support_status=SupportStatus.SUPPORTED)
+                VenueActivity(
+                    venue_id=venue.venue_id,
+                    activity_type_id=activity.activity_type_id,
+                    support_status=SupportStatus.SUPPORTED,
+                    source_reference=(
+                        "https://www.activesgcircle.gov.sg/facilities/bishan-sports-hall"
+                        if venue.name == "Bishan Sports Hall"
+                        else None
+                    ),
+                )
                 for venue in venues
             ]
         )
@@ -174,8 +184,15 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
             )
             assert bishan_venue["dataSource"] == "Sport Singapore via data.gov.sg"
             assert bishan_venue["lastUpdated"] == "2026-10-28T08:00:00+00:00"
+            assert bishan_venue["officialUrl"] == "https://www.activesgcircle.gov.sg/facilities/bishan-sports-hall"
             assert "available" not in bishan_venue
             assert "bookable" not in bishan_venue
+            demo_venue = next(
+                option["venue"]
+                for option in recommendations["combinations"]
+                if option["venue"]["name"] == "Toa Payoh Sports Hall"
+            )
+            assert demo_venue["officialUrl"] is None
 
             # Editing a response invalidates the first snapshot. Regeneration
             # must replace identical Candidate Timeslots instead of violating
@@ -184,12 +201,14 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
             regenerated = client.post(f"/api/sessions/{session_id}/recommendations")
             assert regenerated.status_code == 200, regenerated.text
             assert regenerated.json()["combinations"]
-            combination_id = regenerated.json()["combinations"][0]["combinationId"]
+            selected_option = regenerated.json()["combinations"][0]
+            combination_id = selected_option["combinationId"]
 
             confirmed = client.post(f"/api/sessions/{session_id}/confirm", json={"combinationId": combination_id})
             assert confirmed.status_code == 200, confirmed.text
             assert confirmed.json()["status"] == "CONFIRMED"
             assert len(confirmed.json()["confirmed"]["attendees"]) == 2
+            assert confirmed.json()["confirmed"]["venue"]["officialUrl"] == selected_option["venue"]["officialUrl"]
             assert confirmed.json()["confirmed"]["calendarSync"] == {
                 "succeeded": 0,
                 "failed": 0,
@@ -205,6 +224,94 @@ def test_frontend_backend_recommender_round_trip(tmp_path):
         settings.use_mock_providers = original_mock
         settings.google_calendar_enabled = original_calendar_enabled
         app.dependency_overrides.clear()
+
+
+def test_official_url_rejects_untrusted_or_unsupported_references(tmp_path):
+    assert hasattr(web_contract_service, "_official_url"), "official URL projection is not implemented"
+
+    engine = create_engine(
+        f"sqlite:///{tmp_path / 'official-links.db'}",
+        connect_args={"check_same_thread": False},
+    )
+    SQLModel.metadata.create_all(engine)
+    cases = [
+        ("Park HTTP", VenueCategory.PARK, "http://www.nparks.gov.sg/park-http", SupportStatus.SUPPORTED, None),
+        (
+            "Park deceptive suffix",
+            VenueCategory.PARK,
+            "https://nparks.gov.sg.evil.example/park",
+            SupportStatus.SUPPORTED,
+            None,
+        ),
+        ("Park unrelated", VenueCategory.PARK, "https://example.com/park", SupportStatus.SUPPORTED, None),
+        (
+            "Park wrong official family",
+            VenueCategory.PARK,
+            "https://www.activesgcircle.gov.sg/facilities/park",
+            SupportStatus.SUPPORTED,
+            None,
+        ),
+        (
+            "Sport wrong official family",
+            VenueCategory.SPORTS_FACILITY,
+            "https://www.nparks.gov.sg/sport",
+            SupportStatus.SUPPORTED,
+            None,
+        ),
+        (
+            "Unsupported park",
+            VenueCategory.PARK,
+            "https://www.nparks.gov.sg/parks/unsupported",
+            SupportStatus.UNAVAILABLE,
+            None,
+        ),
+        (
+            "Reviewed park subdomain",
+            VenueCategory.PARK,
+            "https://beta.nparks.gov.sg/parks/reviewed",
+            SupportStatus.SUPPORTED,
+            "https://beta.nparks.gov.sg/parks/reviewed",
+        ),
+        (
+            "Reviewed sport subdomain",
+            VenueCategory.SPORTS_FACILITY,
+            "https://venues.activesgcircle.gov.sg/facilities/reviewed",
+            SupportStatus.SUPPORTED,
+            "https://venues.activesgcircle.gov.sg/facilities/reviewed",
+        ),
+    ]
+
+    with Session(engine) as db:
+        activity = ActivityType(category="TEST", name="Official URL validation")
+        db.add(activity)
+        db.flush()
+        rows = []
+        for index, (name, category, reference, status, expected) in enumerate(cases):
+            venue = Venue(
+                name=name,
+                category=category,
+                address=f"{index} Test Street, Singapore",
+                latitude=1.30 + index / 1000,
+                longitude=103.80 + index / 1000,
+                data_source="TEST",
+            )
+            db.add(venue)
+            db.flush()
+            db.add(
+                VenueActivity(
+                    venue_id=venue.venue_id,
+                    activity_type_id=activity.activity_type_id,
+                    support_status=status,
+                    source_reference=reference,
+                )
+            )
+            rows.append((venue, expected))
+        db.commit()
+
+        assert [
+            web_contract_service._official_url(db, venue, activity.activity_type_id)
+            for venue, _ in rows
+        ] == [expected for _, expected in rows]
 
 
 class FakeGoogleOAuthClient:
