@@ -165,6 +165,21 @@ Verified Picnic park rollout evidence (redacted):
 | Idempotent second park apply | `PASS — 0 inserted / 0 updated / 0 deactivated / 20 verified` | 2026-10-31 00:32 +08 |
 | Production activity catalogue | `PASS — Outdoors → Picnic visible; Leisure hidden` | 2026-10-31 00:33 +08 |
 
+Grouped recommendation-time release check:
+
+- [x] Equivalent combinations are grouped only when venue, feasibility,
+  scores, travel facts, attendees and absentee statuses match.
+- [x] Every stored Combination remains selectable; confirmation continues to
+  submit the selected `combinationId` rather than a derived time range.
+- [x] The first six times are shown initially and the remaining times require
+  an explicit “Show all” action.
+- [x] Frontend tests, lint and production build pass; the full backend suite
+  remains green (`256 passed`).
+- [ ] After Render deploys the release, open the reported production Session
+  and verify Jurong Central Park is one card with eleven time choices, Chinese
+  Garden and Choa Chu Kang Park are separate ranked cards, selecting a later
+  time updates the summary, and a non-organiser still cannot confirm.
+
 ### Picnic park catalogue — Render Shell procedure
 
 The park catalogue is intentionally manual and is never part of application

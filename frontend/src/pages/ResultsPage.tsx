@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { isApiError } from '../api/client'
 import { useConfirmPlan, useGenerateRecommendations, useRecommendations } from '../api/hooks/recommendations'
@@ -7,6 +7,11 @@ import type { ExclusionReason, RecommendationSet, SessionDetail } from '../api/t
 import { StatusMessage } from '../components/StatusMessage'
 import { formatTime } from '../lib/time'
 import { ConfirmPlanPanel } from '../results/ConfirmPlanPanel'
+import {
+  chooseRecommendationTime,
+  groupRankedCombinations,
+  selectedOptionForGroup,
+} from '../results/groupRecommendations'
 import { RankedOptionCard } from '../results/RankedOptionCard'
 import { GenerateError } from '../sessions/GenerateError'
 import { OBJECTIVE_LABELS } from '../sessions/labels'
@@ -88,23 +93,40 @@ function ResultsView({
   const mutable = active && session.activitySupported
   const stale = Boolean(set?.stale || session.recommendationsStale)
 
-  // undefined = default to the top option; null = user collapsed everything.
-  const [expandedId, setExpandedId] = useState<string | null | undefined>(undefined)
+  const combos = set?.combinations ?? []
+  const groups = useMemo(() => groupRankedCombinations(set?.combinations ?? []), [set?.combinations])
+
+  // undefined = default to the top group; null = user collapsed everything.
+  const [expandedGroupKey, setExpandedGroupKey] = useState<string | null | undefined>(undefined)
+  const [selectedByGroup, setSelectedByGroup] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
 
-  const combos = set?.combinations ?? []
+  const expandedGroup =
+    expandedGroupKey === null ? null : (groups.find((group) => group.key === expandedGroupKey) ?? groups[0] ?? null)
   const expanded =
-    expandedId === null ? null : (combos.find((c) => c.combinationId === expandedId) ?? combos[0] ?? null)
+    expandedGroup === null
+      ? null
+      : selectedOptionForGroup(
+          expandedGroup,
+          selectedByGroup[expandedGroup.key],
+          session.confirmed?.combinationId,
+        )
 
-  function toggle(id: string) {
+  function toggle(groupKey: string) {
+    if (confirm.isPending) return
     setConfirming(false)
     confirm.reset()
-    setExpandedId(expanded?.combinationId === id ? null : id)
+    setExpandedGroupKey(expandedGroup?.key === groupKey ? null : groupKey)
   }
 
   function regenerate() {
     setConfirming(false)
-    generate.mutate(undefined, { onSuccess: () => setExpandedId(undefined) })
+    generate.mutate(undefined, {
+      onSuccess: () => {
+        setExpandedGroupKey(undefined)
+        setSelectedByGroup({})
+      },
+    })
   }
 
   function doConfirm() {
@@ -222,26 +244,43 @@ function ResultsView({
         </StatusMessage>
       )}
 
-      {combos.length > 0 && (
+      {groups.length > 0 && (
         <ol className="results__list" aria-label="Ranked options, best first">
-          {combos.map((c, i) => (
-            <li key={c.combinationId}>
-              {c.feasibilityStatus === 'DATA_UNAVAILABLE' && combos[i - 1]?.feasibilityStatus !== 'DATA_UNAVAILABLE' && (
-                // NFR-3: unavailable data is labelled, not hidden, and kept apart from normal ranking.
-                <p className="results__divider">
-                  Missing some travel times, so these are listed last and can't be confirmed yet.
-                </p>
-              )}
-              <RankedOptionCard
-                option={c}
-                requestedMinimum={set!.minimumAttendees}
-                timeZone={session.timezone}
-                expanded={expanded?.combinationId === c.combinationId}
-                onToggle={() => toggle(c.combinationId)}
-                isConfirmed={session.confirmed?.combinationId === c.combinationId}
-              />
-            </li>
-          ))}
+          {groups.map((group, index) => {
+            const selected = selectedOptionForGroup(
+              group,
+              selectedByGroup[group.key],
+              session.confirmed?.combinationId,
+            )
+            const unavailable = selected.feasibilityStatus === 'DATA_UNAVAILABLE'
+            const previousUnavailable = groups[index - 1]?.options[0].feasibilityStatus === 'DATA_UNAVAILABLE'
+            return (
+              <li key={group.key}>
+                {unavailable && !previousUnavailable && (
+                  // NFR-3: unavailable data is labelled, not hidden, and kept apart from normal ranking.
+                  <p className="results__divider">
+                    Missing some travel times, so these are listed last and can't be confirmed yet.
+                  </p>
+                )}
+                <RankedOptionCard
+                  options={group.options}
+                  selectedCombinationId={selected.combinationId}
+                  displayRank={group.displayRank}
+                  requestedMinimum={set!.minimumAttendees}
+                  timeZone={session.timezone}
+                  expanded={expandedGroup?.key === group.key}
+                  interactionDisabled={confirm.isPending}
+                  onToggle={() => toggle(group.key)}
+                  onSelectOption={(combinationId) =>
+                    setSelectedByGroup((current) =>
+                      chooseRecommendationTime(current, group.key, combinationId, confirm.isPending),
+                    )
+                  }
+                  isConfirmed={session.confirmed?.combinationId === selected.combinationId}
+                />
+              </li>
+            )
+          })}
         </ol>
       )}
 
@@ -276,7 +315,9 @@ function ResultsView({
             />
           ) : (
             <button type="button" className="btn-primary" onClick={() => setConfirming(true)}>
-              {expanded.rank === 1 ? 'Confirm top match' : `Confirm option #${expanded.rank}`}
+              {expandedGroup?.displayRank === 1
+                ? 'Confirm top match at this time'
+                : `Confirm option #${expandedGroup?.displayRank} at this time`}
             </button>
           )}
         </div>
