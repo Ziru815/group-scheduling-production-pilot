@@ -1,6 +1,9 @@
 digraph participant_availability_status {
-  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42];
-  node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650", fontname="Helvetica", fontsize=10];
+  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42,
+         label="_ParticipantAvailability.status_for — N=15, E=22, V(G)=9", labelloc=t,
+         fontname="Helvetica", fontsize=12];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650",
+        fontname="Helvetica", fontsize=10];
   edge [color="#5B655E", fontname="Helvetica", fontsize=9];
 
   N1 [label="N1  Entry\nread participant", shape=oval, fillcolor="#DCEBDF"];
@@ -8,25 +11,37 @@ digraph participant_availability_status {
   N3 [label="N3  return NO_RESPONSE", fillcolor="#F7D8D5"];
   N4 [label="N4  record withdrawn?", shape=diamond, fillcolor="#FFF1CC"];
   N5 [label="N5  return WITHDRAWN", fillcolor="#F7D8D5"];
-  N6 [label="N6  any BUSY overlap?", shape=diamond, fillcolor="#FFF1CC"];
-  N7 [label="N7  return UNAVAILABLE", fillcolor="#F7D8D5"];
-  N8 [label="N8  slot fully inside AVAILABLE block?", shape=diamond, fillcolor="#FFF1CC"];
-  N9 [label="N9  return AVAILABLE", fillcolor="#DCEBDF"];
-  N10 [label="N10  return UNAVAILABLE", fillcolor="#F7D8D5"];
-  N11 [label="N11  Exit", shape=oval, fillcolor="#DCEBDF"];
+  N6 [label="N6  next BUSY block?", shape=diamond, fillcolor="#FFF1CC"];
+  N7 [label="N7  busy.start < slot.end?", shape=diamond, fillcolor="#FFF1CC"];
+  N8 [label="N8  slot.start < busy.end?", shape=diamond, fillcolor="#FFF1CC"];
+  N9 [label="N9  return UNAVAILABLE\n(BUSY overlap)", fillcolor="#F7D8D5"];
+  N10 [label="N10  next AVAILABLE block?", shape=diamond, fillcolor="#FFF1CC"];
+  N11 [label="N11  available.start <= slot.start?", shape=diamond, fillcolor="#FFF1CC"];
+  N12 [label="N12  slot.end <= available.end?", shape=diamond, fillcolor="#FFF1CC"];
+  N13 [label="N13  return AVAILABLE", fillcolor="#DCEBDF"];
+  N14 [label="N14  return UNAVAILABLE\n(no full coverage)", fillcolor="#F7D8D5"];
+  N15 [label="N15  Common exit", shape=oval, fillcolor="#DCEBDF"];
 
-  N1 -> N2;
-  N2 -> N3 [label="T"];
-  N2 -> N4 [label="F"];
-  N3 -> N11;
-  N4 -> N5 [label="T"];
-  N4 -> N6 [label="F"];
-  N5 -> N11;
-  N6 -> N7 [label="T"];
-  N6 -> N8 [label="F"];
-  N7 -> N11;
-  N8 -> N9 [label="T"];
-  N8 -> N10 [label="F"];
-  N9 -> N11;
-  N10 -> N11;
+  N1 -> N2 [label="E1"];
+  N2 -> N3 [label="E2 T"];
+  N2 -> N4 [label="E3 F"];
+  N3 -> N15 [label="E4"];
+  N4 -> N5 [label="E5 T"];
+  N4 -> N6 [label="E6 F"];
+  N5 -> N15 [label="E7"];
+  N6 -> N7 [label="E8 T"];
+  N6 -> N10 [label="E9 F"];
+  N7 -> N8 [label="E10 T"];
+  N7 -> N6 [label="E11 F"];
+  N8 -> N9 [label="E12 T"];
+  N8 -> N6 [label="E13 F"];
+  N9 -> N15 [label="E14"];
+  N10 -> N11 [label="E15 T"];
+  N10 -> N14 [label="E16 F"];
+  N11 -> N12 [label="E17 T"];
+  N11 -> N10 [label="E18 F"];
+  N12 -> N13 [label="E19 T"];
+  N12 -> N10 [label="E20 F"];
+  N13 -> N15 [label="E21"];
+  N14 -> N15 [label="E22"];
 }

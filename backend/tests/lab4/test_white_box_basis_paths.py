@@ -1,32 +1,33 @@
-"""Lab 4 white-box basis-path tests.
+"""Assessed Lab 4 white-box basis-path tests for two class methods.
 
-The case identifiers correspond to the independent paths documented in the
-submitted control-flow graphs and PDF report.
+``WB-IV-*`` covers ``AvailabilityService._validate_intervals`` (V(G)=6).
+``WB-PA-*`` covers ``_ParticipantAvailability.status_for`` (V(G)=9).
+The identifiers match the CFG/path tables in the submitted report.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+import pytest
+from fastapi import HTTPException
+
+from app.models import SchedulingSession
 from app.recommender.candidate_generation import _ParticipantAvailability
-from app.recommender.feasibility import pre_routing_exclusion
 from app.recommender.types import (
     AttendanceStatus,
-    CandidateTimeslot,
-    Combination,
     Coordinates,
-    ExclusionReason,
     GeocodeStatus,
     Interval,
     IntervalType,
     ParticipantInput,
     RecordStatus,
-    ShortlistEntry,
     TransportMode,
-    VenueCategory,
-    VenueInput,
 )
+from app.schemas import AvailabilityIntervalInput
+from app.services.application_services import AvailabilityService
 
 
 SGT = ZoneInfo("Asia/Singapore")
@@ -35,31 +36,19 @@ SLOT_END = SLOT_START + timedelta(hours=2)
 BISHAN = Coordinates(1.3510, 103.8485)
 
 
-def _combination(
-    attendee_count: int,
-    *,
-    category: VenueCategory,
-    minimum_group_size: int | None = None,
-    lead_minutes: int | None = None,
-) -> Combination:
-    venue = VenueInput(
-        venue_id="basis-path-venue",
-        name="Basis Path Venue",
-        category=category,
-        location=BISHAN,
-        supported_activity_type_ids=frozenset({"badminton"}),
-        min_group_size=minimum_group_size,
-        advance_booking_lead_minutes=lead_minutes,
+def _session() -> SchedulingSession:
+    return SchedulingSession(
+        name="Lab 4 basis-path session",
+        activity_type_id=uuid4(),
+        date_range_start=SLOT_START,
+        date_range_end=SLOT_END,
+        response_deadline=SLOT_START - timedelta(days=1),
+        invitation_token="lab4-basis-path-token",
     )
-    return Combination(
-        timeslot=CandidateTimeslot(index=0, start=SLOT_START, end=SLOT_END),
-        shortlist_entry=ShortlistEntry(
-            venue=venue,
-            straight_line_distance_km=1.0,
-            rank=1,
-        ),
-        attendee_ids=tuple(f"p{index}" for index in range(attendee_count)),
-    )
+
+
+def _interval(start: datetime, end: datetime) -> AvailabilityIntervalInput:
+    return AvailabilityIntervalInput(start_date_time=start, end_date_time=end)
 
 
 def _participant(
@@ -81,115 +70,122 @@ def _participant(
     )
 
 
-def test_wb_pr_01_path_below_session_threshold() -> None:
-    combo = _combination(
-        2,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=6,
-        lead_minutes=1440,
-    )
-    assert pre_routing_exclusion(combo, 3, SLOT_START - timedelta(days=7)) is ExclusionReason.BELOW_THRESHOLD
+# AvailabilityService._validate_intervals — six independent paths.
 
 
-def test_wb_pr_02_path_non_sports_skips_sports_constraints() -> None:
-    combo = _combination(
-        3,
-        category=VenueCategory.PARK,
-        minimum_group_size=99,
-        lead_minutes=999999,
-    )
-    assert pre_routing_exclusion(combo, 3, SLOT_START) is None
+def test_wb_iv_01_path_empty_input_returns_empty_ordered_list() -> None:
+    assert AvailabilityService._validate_intervals(_session(), []) == []
 
 
-def test_wb_pr_03_path_sports_group_size_failure() -> None:
-    combo = _combination(
-        3,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=4,
-    )
-    assert pre_routing_exclusion(combo, 2, SLOT_START - timedelta(days=7)) is ExclusionReason.GROUP_SIZE
+def test_wb_iv_02_path_start_one_minute_before_session_is_rejected() -> None:
+    intervals = [_interval(SLOT_START - timedelta(minutes=1), SLOT_START + timedelta(minutes=30))]
+    with pytest.raises(HTTPException) as caught:
+        AvailabilityService._validate_intervals(_session(), intervals)
+    assert caught.value.status_code == 422
+    assert caught.value.detail == "Availability must be inside the session date range"
 
 
-def test_wb_pr_04_path_sports_has_no_group_or_lead_constraint() -> None:
-    combo = _combination(
-        3,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=None,
-        lead_minutes=None,
-    )
-    assert pre_routing_exclusion(combo, 2, SLOT_START - timedelta(days=7)) is None
+def test_wb_iv_03_path_end_one_minute_after_session_is_rejected() -> None:
+    intervals = [_interval(SLOT_END - timedelta(minutes=30), SLOT_END + timedelta(minutes=1))]
+    with pytest.raises(HTTPException) as caught:
+        AvailabilityService._validate_intervals(_session(), intervals)
+    assert caught.value.status_code == 422
+    assert caught.value.detail == "Availability must be inside the session date range"
 
 
-def test_wb_pr_05_path_sports_meets_group_size_without_lead_constraint() -> None:
-    combo = _combination(
-        4,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=4,
-        lead_minutes=None,
-    )
-    assert pre_routing_exclusion(combo, 2, SLOT_START - timedelta(days=7)) is None
+def test_wb_iv_04_path_exact_session_endpoints_are_accepted() -> None:
+    interval = _interval(SLOT_START, SLOT_END)
+    ordered = AvailabilityService._validate_intervals(_session(), [interval])
+    assert [(item.start_date_time, item.end_date_time) for item in ordered] == [
+        (SLOT_START, SLOT_END)
+    ]
 
 
-def test_wb_pr_06_path_sports_booking_lead_failure() -> None:
-    combo = _combination(
-        4,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=4,
-        lead_minutes=1440,
-    )
-    now = SLOT_START - timedelta(hours=23)
-    assert pre_routing_exclusion(combo, 2, now) is ExclusionReason.BOOKING_LEAD_TIME
+def test_wb_iv_05_path_one_minute_overlap_is_rejected() -> None:
+    intervals = [
+        _interval(SLOT_START, SLOT_START + timedelta(minutes=61)),
+        _interval(SLOT_START + timedelta(minutes=60), SLOT_END),
+    ]
+    with pytest.raises(HTTPException) as caught:
+        AvailabilityService._validate_intervals(_session(), intervals)
+    assert caught.value.status_code == 422
+    assert caught.value.detail == "Availability intervals cannot overlap"
 
 
-def test_wb_pr_07_path_sports_exactly_meets_booking_lead_boundary() -> None:
-    combo = _combination(
-        4,
-        category=VenueCategory.SPORTS_FACILITY,
-        minimum_group_size=4,
-        lead_minutes=1440,
-    )
-    now = SLOT_START - timedelta(hours=24)
-    assert pre_routing_exclusion(combo, 2, now) is None
+def test_wb_iv_06_path_unsorted_touching_intervals_are_sorted_and_accepted() -> None:
+    later = _interval(SLOT_START + timedelta(hours=1), SLOT_END)
+    earlier = _interval(SLOT_START, SLOT_START + timedelta(hours=1))
+    ordered = AvailabilityService._validate_intervals(_session(), [later, earlier])
+    assert [(item.start_date_time, item.end_date_time) for item in ordered] == [
+        (SLOT_START, SLOT_START + timedelta(hours=1)),
+        (SLOT_START + timedelta(hours=1), SLOT_END),
+    ]
 
 
-def test_wb_pa_01_path_no_response() -> None:
+# _ParticipantAvailability.status_for — nine logical basis paths after
+# expanding each ``any`` generator and its two short-circuit comparisons.
+
+
+def test_wb_pa_01_path_active_with_no_blocks_is_unavailable() -> None:
+    availability = _ParticipantAvailability(_participant())
+    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
+
+
+def test_wb_pa_02_path_no_response_returns_no_response() -> None:
     availability = _ParticipantAvailability(_participant(status=None))
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.NO_RESPONSE
 
 
-def test_wb_pa_02_path_withdrawn() -> None:
+def test_wb_pa_03_path_withdrawn_returns_withdrawn() -> None:
     availability = _ParticipantAvailability(
         _participant(
             status=RecordStatus.WITHDRAWN,
-            available=((SLOT_START - timedelta(hours=2), SLOT_END + timedelta(hours=2)),),
+            available=((SLOT_START, SLOT_END),),
         )
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.WITHDRAWN
 
 
-def test_wb_pa_03_path_busy_overlap_overrides_available_time() -> None:
+def test_wb_pa_04_path_busy_starting_at_slot_end_does_not_overlap() -> None:
+    availability = _ParticipantAvailability(
+        _participant(busy=((SLOT_END, SLOT_END + timedelta(minutes=30)),))
+    )
+    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
+
+
+def test_wb_pa_05_path_busy_ending_at_slot_start_does_not_overlap() -> None:
+    availability = _ParticipantAvailability(
+        _participant(busy=((SLOT_START - timedelta(minutes=30), SLOT_START),))
+    )
+    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
+
+
+def test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability() -> None:
     availability = _ParticipantAvailability(
         _participant(
-            available=((SLOT_START - timedelta(hours=2), SLOT_END + timedelta(hours=2)),),
-            busy=((SLOT_START + timedelta(minutes=30), SLOT_START + timedelta(hours=1)),),
+            available=((SLOT_START, SLOT_END),),
+            busy=((SLOT_END - timedelta(minutes=1), SLOT_END + timedelta(minutes=30)),),
         )
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
 
 
-def test_wb_pa_04_path_slot_is_fully_covered_by_available_time() -> None:
+def test_wb_pa_07_path_available_block_starting_one_minute_late_is_unavailable() -> None:
     availability = _ParticipantAvailability(
-        _participant(
-            available=((SLOT_START - timedelta(hours=1), SLOT_END + timedelta(hours=1)),),
-        )
+        _participant(available=((SLOT_START + timedelta(minutes=1), SLOT_END),))
+    )
+    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
+
+
+def test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable() -> None:
+    availability = _ParticipantAvailability(
+        _participant(available=((SLOT_START, SLOT_END - timedelta(minutes=1)),))
+    )
+    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
+
+
+def test_wb_pa_09_path_exact_full_available_coverage_is_available() -> None:
+    availability = _ParticipantAvailability(
+        _participant(available=((SLOT_START, SLOT_END),))
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.AVAILABLE
-
-
-def test_wb_pa_05_path_partial_coverage_is_unavailable() -> None:
-    availability = _ParticipantAvailability(
-        _participant(
-            available=((SLOT_START, SLOT_END - timedelta(minutes=1)),),
-        )
-    )
-    assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
