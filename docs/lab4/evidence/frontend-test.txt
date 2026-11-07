@@ -1,0 +1,45 @@
+
+> frontend@0.0.0 test
+> node --experimental-strip-types --test tests/*.test.ts && npm run test:ui
+
+✔ groups only equivalent outcomes at one venue (13.352541ms)
+✔ keeps different attendance and routing outcomes separate (0.927125ms)
+✔ keeps different official venue links separate (0.12525ms)
+✔ keeps group order while sorting times chronologically (0.127416ms)
+✔ selects an explicit valid time (0.793292ms)
+✔ prefers a confirmed time when the explicit selection is stale (0.10025ms)
+✔ falls back to the first ranked time (0.0665ms)
+✔ rejects an empty recommendation group (0.219833ms)
+✔ shows six time choices before the user reveals the rest (0.104833ms)
+✔ keeps the submitted time selected while confirmation is pending (0.091333ms)
+✔ allows choosing another time before confirmation starts (0.060167ms)
+✔ formats a complete single-day invitation in the Session timezone (30.990125ms)
+✔ formats the complete date range for a multi-day invitation (0.097917ms)
+✔ park guidance is honest about public access and NParks conditions (0.470167ms)
+✔ sports guidance retains ActiveSG booking language without making a live claim (0.117584ms)
+✔ official information labels are specific to parks (0.062583ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 175.938458
+
+> frontend@0.0.0 test:ui
+> TSX_TSCONFIG_PATH=tsconfig.app.json node --import ./tests/register-css-loader.mjs --import tsx --test tests/*.test.tsx
+
+✔ keeps the QR hidden until the organiser expands it (103.595583ms)
+✔ copies the complete invitation message (9.520333ms)
+✔ selects the raw link when invitation message copying fails (10.34025ms)
+✔ new Session success shares the complete invitation and offers a QR code (83.586917ms)
+✔ organiser response status shares the same complete invitation (18.060916ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 954.211541

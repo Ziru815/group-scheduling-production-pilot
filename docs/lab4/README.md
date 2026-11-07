@@ -2,7 +2,7 @@
 
 **Work product:** black-box and white-box test cases, control-flow graphs, executed results and traceability
 
-**Author:** Group 1 — Software Testing
+**Author:** Ziru Gao — Group 1, Software Testing
 
 **Production baseline:** `feature/production-pilot` at `26cb622a8724018f7582225c640d5ac93e9ac8a5`
 
@@ -13,15 +13,16 @@
 - **Black-box control boundary:** `RecommendationEngine.generate()` — 25 equivalence-class and boundary-value cases.
 - **White-box method 1:** `AvailabilityService._validate_intervals()` — six basis paths; `N=10`, `E=14`, `V(G)=6`.
 - **White-box method 2:** `_ParticipantAvailability.status_for()` — nine basis paths; `N=15`, `E=22`, `V(G)=9` under the documented expanded short-circuit convention.
-- **Supplemental evidence:** seven `pre_routing_exclusion()` regressions, reported separately and not counted as either assessed white-box method.
+- **Supplemental evidence:** seven `pre_routing_exclusion()` regressions plus one production-configuration guard, reported separately and not counted as either assessed white-box method.
 
-The fresh Lab 4 result is **47 passed**: 40 assessed cases plus seven supplemental regressions.
+The fresh Lab 4 result is **48 passed**: 40 assessed cases plus eight supplemental guards.
 
 ## Files
 
 - `backend/tests/lab4/test_black_box_recommendation_engine.py` — 25 `BB-*` cases.
 - `backend/tests/lab4/test_white_box_basis_paths.py` — six `WB-IV-*` and nine `WB-PA-*` assessed paths.
 - `backend/tests/lab4/test_pre_routing_regressions.py` — seven supplemental `WB-PR-*` cases.
+- `docs/lab4/evidence/` — committed JUnit and plain-text execution evidence.
 - `docs/lab4/cfg_validate_intervals.dot` — interval-validation CFG.
 - `docs/lab4/cfg_participant_availability.dot` — participant-attendance CFG.
 - `docs/lab4/generate_report.py` — deterministic ReportLab generator with JUnit, graph-rank, SRS and PDF structural checks.
@@ -44,25 +45,25 @@ python docs/srs/update_v2_3.py \
   "docs/SRS Group Scheduling Application v2.3.docx"
 ```
 
-The source v2.2 file is retained unchanged. The generated v2.3 documents the Pilot's labelled best-available recovery and adopted values 60 / 2 / 10 / 30.
+The source v2.2 file is retained unchanged. The generated v2.3 documents the Pilot's labelled best-available recovery and adopted values 60 / 2 / 10 / 15.
 
-## 2. Generate fresh 47-case JUnit evidence
+## 2. Generate fresh 48-test JUnit evidence
 
 ```bash
-mkdir -p .superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report
+mkdir -p docs/lab4/evidence
 cd backend
 python -m pytest tests/lab4 -q \
-  --junitxml=../.superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml
+  --junitxml=../docs/lab4/evidence/lab4-junit.xml
 cd ..
 ```
 
 Expected result:
 
 ```text
-47 passed
+48 passed
 ```
 
-The JUnit file must contain exactly 25 `test_bb_*`, six `test_wb_iv_*`, nine `test_wb_pa_*` and seven `test_wb_pr_*` names with no failures or errors.
+The JUnit file must contain exactly 25 `test_bb_*`, six `test_wb_iv_*`, nine `test_wb_pa_*`, seven `test_wb_pr_*` and one production-step guard with no failures, errors, skips or duplicate names.
 
 ## 3. Generate the deterministic PDF report
 
@@ -102,7 +103,7 @@ npm run build
 Verified baseline results:
 
 - document/report guard regressions: 6 passed;
-- backend: 311 passed; one third-party deprecation warning;
+- backend: 312 passed; one third-party deprecation warning;
 - frontend Node/UI tests: 21 passed;
 - lint: passed;
 - production build: passed, 152 modules transformed.
