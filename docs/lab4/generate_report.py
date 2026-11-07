@@ -1,9 +1,14 @@
+"""Build the deterministic Pilot-aligned SC2006 Lab 4 testing report."""
+
 from __future__ import annotations
 
+import ast
+from fractions import Fraction
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape
 
+from docx import Document
 from pypdf import PdfReader
 from reportlab.graphics.shapes import Drawing, Line, Polygon, Rect, String
 from reportlab.lib import colors
@@ -11,7 +16,6 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -31,7 +35,9 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "docs/lab4/Lab4_Software_Testing_Report.pdf"
-JUNIT = ROOT / ".superpowers/sdd/2026-11-07-lab4-software-testing-report/lab4-junit.xml"
+JUNIT = ROOT / ".superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml"
+SRS = ROOT / "docs/SRS Group Scheduling Application v2.3.docx"
+PILOT_SHA = "26cb622a8724018f7582225c640d5ac93e9ac8a5"
 
 GREEN = colors.HexColor("#174A3A")
 MID_GREEN = colors.HexColor("#2F6650")
@@ -41,15 +47,12 @@ PALE_GOLD = colors.HexColor("#FFF1CC")
 INK = colors.HexColor("#26322C")
 MUTED = colors.HexColor("#5B655E")
 CREAM = colors.HexColor("#F7F4EC")
-RED = colors.HexColor("#8E3731")
 PALE_RED = colors.HexColor("#F7D8D5")
 WHITE = colors.white
 GRID = colors.HexColor("#C7CEC9")
 
 
 class InvariantCanvas(pdfcanvas.Canvas):
-    """Create byte-for-byte stable PDFs for unchanged report content."""
-
     def __init__(self, *args, **kwargs):
         kwargs["invariant"] = 1
         super().__init__(*args, **kwargs)
@@ -57,108 +60,47 @@ class InvariantCanvas(pdfcanvas.Canvas):
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(
-    name="ReportTitle",
-    parent=styles["Title"],
-    fontName="Helvetica-Bold",
-    fontSize=26,
-    leading=31,
-    textColor=GREEN,
-    alignment=TA_LEFT,
-    spaceAfter=10,
+    name="ReportTitle", parent=styles["Title"], fontName="Helvetica-Bold",
+    fontSize=26, leading=31, textColor=GREEN, alignment=TA_LEFT, spaceAfter=10,
 ))
 styles.add(ParagraphStyle(
-    name="Subtitle",
-    parent=styles["Normal"],
-    fontName="Helvetica",
-    fontSize=12,
-    leading=17,
-    textColor=MUTED,
-    spaceAfter=8,
+    name="Subtitle", parent=styles["Normal"], fontName="Helvetica", fontSize=12,
+    leading=17, textColor=MUTED, spaceAfter=8,
 ))
 styles.add(ParagraphStyle(
-    name="Section",
-    parent=styles["Heading1"],
-    fontName="Helvetica-Bold",
-    fontSize=18,
-    leading=22,
-    textColor=GREEN,
-    spaceBefore=4,
-    spaceAfter=9,
+    name="Section", parent=styles["Heading1"], fontName="Helvetica-Bold",
+    fontSize=17, leading=21, textColor=GREEN, spaceBefore=3, spaceAfter=8,
 ))
 styles.add(ParagraphStyle(
-    name="Subsection",
-    parent=styles["Heading2"],
-    fontName="Helvetica-Bold",
-    fontSize=12.5,
-    leading=16,
-    textColor=MID_GREEN,
-    spaceBefore=8,
-    spaceAfter=5,
+    name="Subsection", parent=styles["Heading2"], fontName="Helvetica-Bold",
+    fontSize=11.5, leading=14.5, textColor=MID_GREEN, spaceBefore=7, spaceAfter=4,
 ))
 styles.add(ParagraphStyle(
-    name="Body",
-    parent=styles["BodyText"],
-    fontName="Helvetica",
-    fontSize=9.4,
-    leading=13.2,
-    textColor=INK,
-    spaceAfter=7,
+    name="Body", parent=styles["BodyText"], fontName="Helvetica", fontSize=9.1,
+    leading=12.6, textColor=INK, spaceAfter=6,
 ))
 styles.add(ParagraphStyle(
-    name="Small",
-    parent=styles["BodyText"],
-    fontName="Helvetica",
-    fontSize=7.5,
-    leading=10,
-    textColor=INK,
+    name="Small", parent=styles["BodyText"], fontName="Helvetica", fontSize=7.5,
+    leading=9.7, textColor=INK,
 ))
 styles.add(ParagraphStyle(
-    name="Tiny",
-    parent=styles["BodyText"],
-    fontName="Helvetica",
-    fontSize=6.4,
-    leading=8.2,
-    textColor=INK,
+    name="Tiny", parent=styles["BodyText"], fontName="Helvetica", fontSize=6.2,
+    leading=7.7, textColor=INK,
 ))
 styles.add(ParagraphStyle(
-    name="TableHeader",
-    parent=styles["BodyText"],
-    fontName="Helvetica-Bold",
-    fontSize=7,
-    leading=8.5,
-    textColor=WHITE,
-    alignment=TA_CENTER,
+    name="TableHeader", parent=styles["BodyText"], fontName="Helvetica-Bold",
+    fontSize=6.7, leading=8.1, textColor=WHITE, alignment=TA_CENTER,
 ))
 styles.add(ParagraphStyle(
-    name="CodeBlock",
-    fontName="Courier",
-    fontSize=6.1,
-    leading=7.1,
-    textColor=INK,
-    leftIndent=5,
-    rightIndent=5,
-    borderColor=GRID,
-    borderWidth=0.5,
-    borderPadding=4,
-    backColor=colors.HexColor("#F3F5F3"),
-    spaceBefore=3,
-    spaceAfter=5,
+    name="CodeBlock", fontName="Courier", fontSize=5.75, leading=6.75,
+    textColor=INK, leftIndent=4, rightIndent=4, borderColor=GRID, borderWidth=0.5,
+    borderPadding=4, backColor=colors.HexColor("#F3F5F3"), spaceBefore=3, spaceAfter=5,
 ))
 styles.add(ParagraphStyle(
-    name="Callout",
-    parent=styles["BodyText"],
-    fontName="Helvetica-Bold",
-    fontSize=9,
-    leading=12.5,
-    textColor=GREEN,
-    leftIndent=8,
-    rightIndent=8,
-    borderColor=GOLD,
-    borderWidth=1,
-    borderPadding=8,
-    backColor=PALE_GOLD,
-    spaceBefore=5,
-    spaceAfter=9,
+    name="Callout", parent=styles["BodyText"], fontName="Helvetica-Bold",
+    fontSize=8.7, leading=12, textColor=GREEN, leftIndent=8, rightIndent=8,
+    borderColor=GOLD, borderWidth=1, borderPadding=7, backColor=PALE_GOLD,
+    spaceBefore=5, spaceAfter=8,
 ))
 
 
@@ -166,44 +108,44 @@ def p(text: str, style: str = "Body") -> Paragraph:
     return Paragraph(text, styles[style])
 
 
-def cell(text: str, style: str = "Tiny") -> Paragraph:
-    return Paragraph(escape(str(text)).replace("\n", "<br/>"), styles[style])
-
-
 def section(title: str, number: str) -> list:
-    return [p(f"{number}  {title}", "Section"), HRFlowable(width="100%", thickness=1.2, color=GOLD, spaceAfter=8)]
+    return [
+        p(f"{number}  {title}", "Section"),
+        HRFlowable(width="100%", thickness=1.2, color=GOLD, spaceAfter=7),
+    ]
 
 
-def table(data, widths, *, header=True, font_size=6.4, leading=8.2, h_align="LEFT"):
+def report_table(data, widths, *, font_size=6.4, leading=8.0, repeat=True, padding=3.3):
     converted = []
-    for r, row in enumerate(data):
+    for row_index, row in enumerate(data):
         converted.append([
             Paragraph(
                 escape(str(value)).replace("\n", "<br/>"),
-                styles["TableHeader"] if header and r == 0 else ParagraphStyle(
-                    f"table-{r}-{c}-{font_size}",
-                    parent=styles["Tiny"],
-                    fontSize=font_size,
-                    leading=leading,
+                styles["TableHeader"] if row_index == 0 else ParagraphStyle(
+                    f"table-{row_index}-{column_index}-{font_size}",
+                    parent=styles["Tiny"], fontSize=font_size, leading=leading,
                     alignment=TA_LEFT,
                 ),
             )
-            for c, value in enumerate(row)
+            for column_index, value in enumerate(row)
         ])
     cls = LongTable if len(data) > 8 else Table
-    result = cls(converted, colWidths=widths, repeatRows=1 if header else 0, hAlign=h_align, splitByRow=1)
+    result = cls(
+        converted, colWidths=widths, repeatRows=1 if repeat else 0,
+        hAlign="LEFT", splitByRow=1,
+    )
     commands = [
         ("BACKGROUND", (0, 0), (-1, 0), GREEN),
         ("TEXTCOLOR", (0, 0), (-1, 0), WHITE),
         ("GRID", (0, 0), (-1, -1), 0.45, GRID),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), padding),
+        ("RIGHTPADDING", (0, 0), (-1, -1), padding),
+        ("TOPPADDING", (0, 0), (-1, -1), padding),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), padding),
     ]
-    for r in range(1, len(data)):
-        commands.append(("BACKGROUND", (0, r), (-1, r), WHITE if r % 2 else CREAM))
+    for row_index in range(1, len(data)):
+        commands.append(("BACKGROUND", (0, row_index), (-1, row_index), WHITE if row_index % 2 else CREAM))
     result.setStyle(TableStyle(commands))
     return result
 
@@ -211,14 +153,9 @@ def table(data, widths, *, header=True, font_size=6.4, leading=8.2, h_align="LEF
 class ReportDocTemplate(BaseDocTemplate):
     def __init__(self, filename: str):
         super().__init__(
-            filename,
-            pagesize=A4,
-            leftMargin=17 * mm,
-            rightMargin=17 * mm,
-            topMargin=18 * mm,
-            bottomMargin=17 * mm,
-            title="Lab 4 Software Testing Report",
-            author="Group 1 - Software Testing",
+            filename, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm,
+            topMargin=18 * mm, bottomMargin=16 * mm,
+            title="Lab 4 Software Testing Report", author="Group 1 - Software Testing",
             subject="SC2006 Lab 4 black-box and white-box testing",
         )
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="normal")
@@ -229,370 +166,542 @@ class ReportDocTemplate(BaseDocTemplate):
         if doc.page > 1:
             canvas.setStrokeColor(GRID)
             canvas.line(self.leftMargin, A4[1] - 12 * mm, A4[0] - self.rightMargin, A4[1] - 12 * mm)
-            canvas.setFont("Helvetica", 7.5)
+            canvas.setFont("Helvetica", 7.3)
             canvas.setFillColor(MUTED)
             canvas.drawString(self.leftMargin, A4[1] - 9 * mm, "SC2006 Lab 4 | Software Testing")
-            footer = f"Group 1 - Software Testing     |     Page {doc.page}"
-            canvas.drawRightString(A4[0] - self.rightMargin, 9 * mm, footer)
+            canvas.drawRightString(
+                A4[0] - self.rightMargin, 9 * mm,
+                f"Group 1 - Software Testing     |     Page {doc.page}",
+            )
         canvas.restoreState()
 
 
-def add_arrow(d: Drawing, x1, y1, x2, y2, label: str | None = None, dashed=False):
-    line = Line(x1, y1, x2, y2)
-    line.strokeColor = MUTED
-    line.strokeWidth = 1
-    if dashed:
-        line.strokeDashArray = [3, 2]
-    d.add(line)
+def add_arrow(drawing: Drawing, x1, y1, x2, y2, label: str):
+    drawing.add(Line(x1, y1, x2, y2, strokeColor=MUTED, strokeWidth=0.85))
     dx, dy = x2 - x1, y2 - y1
     length = max((dx * dx + dy * dy) ** 0.5, 1)
     ux, uy = dx / length, dy / length
     px, py = -uy, ux
-    size = 5
-    tip = (x2, y2)
-    left = (x2 - ux * size + px * size * 0.55, y2 - uy * size + py * size * 0.55)
-    right = (x2 - ux * size - px * size * 0.55, y2 - uy * size - py * size * 0.55)
-    d.add(Polygon([tip[0], tip[1], left[0], left[1], right[0], right[1]], fillColor=MUTED, strokeColor=MUTED))
-    if label:
-        d.add(String((x1 + x2) / 2 + 3, (y1 + y2) / 2 + 3, label, fontName="Helvetica-Bold", fontSize=8, fillColor=MUTED))
+    size = 4.3
+    drawing.add(Polygon([
+        x2, y2,
+        x2 - ux * size + px * size * 0.5, y2 - uy * size + py * size * 0.5,
+        x2 - ux * size - px * size * 0.5, y2 - uy * size - py * size * 0.5,
+    ], fillColor=MUTED, strokeColor=MUTED))
+    drawing.add(String(
+        (x1 + x2) / 2 + 2, (y1 + y2) / 2 + 2, label,
+        fontName="Helvetica", fontSize=5.6, fillColor=MUTED,
+    ))
 
 
-def add_node(d: Drawing, cx, cy, width, height, label, kind="box", fill=CREAM):
-    if kind == "diamond":
-        points = [cx, cy + height / 2, cx + width / 2, cy, cx, cy - height / 2, cx - width / 2, cy]
-        d.add(Polygon(points, fillColor=fill, strokeColor=MID_GREEN, strokeWidth=1))
-    elif kind == "oval":
-        d.add(Rect(cx - width / 2, cy - height / 2, width, height, rx=height / 2, ry=height / 2, fillColor=fill, strokeColor=MID_GREEN, strokeWidth=1))
+def add_node(drawing: Drawing, x, y, width, height, label, *, decision=False, terminal=False):
+    fill = PALE_GOLD if decision else (PALE_GREEN if terminal else CREAM)
+    if decision:
+        drawing.add(Polygon([
+            x, y + height / 2, x + width / 2, y,
+            x, y - height / 2, x - width / 2, y,
+        ], fillColor=fill, strokeColor=MID_GREEN, strokeWidth=0.9))
     else:
-        d.add(Rect(cx - width / 2, cy - height / 2, width, height, rx=5, ry=5, fillColor=fill, strokeColor=MID_GREEN, strokeWidth=1))
+        drawing.add(Rect(
+            x - width / 2, y - height / 2, width, height,
+            rx=height / 3 if terminal else 4, ry=height / 3 if terminal else 4,
+            fillColor=fill, strokeColor=MID_GREEN, strokeWidth=0.9,
+        ))
     lines = label.split("\n")
-    for i, line in enumerate(lines):
-        d.add(String(cx, cy + (len(lines) - 1) * 4.5 - i * 9 - 3, line, fontName="Helvetica-Bold" if i == 0 else "Helvetica", fontSize=6.8, textAnchor="middle", fillColor=INK))
+    for index, line in enumerate(lines):
+        drawing.add(String(
+            x, y + (len(lines) - 1) * 3.6 - index * 7.2 - 2.4,
+            line, fontName="Helvetica-Bold" if index == 0 else "Helvetica",
+            fontSize=5.6, textAnchor="middle", fillColor=INK,
+        ))
 
 
-def pre_routing_chart() -> Drawing:
-    d = Drawing(480, 360)
-    main, side = 190, 390
-    nodes = {
-        "N1": (main, 346, 125, 24, "N1  Entry\nread count and venue", "oval", PALE_GREEN),
-        "N2": (main, 310, 145, 30, "N2\ncount < session threshold?", "diamond", PALE_GOLD),
-        "N3": (side, 310, 145, 28, "N3  return\nBELOW_THRESHOLD", "box", PALE_RED),
-        "N4": (main, 265, 140, 30, "N4\nsports facility?", "diamond", PALE_GOLD),
-        "N5": (main, 220, 150, 30, "N5\nminimum group size set?", "diamond", PALE_GOLD),
-        "N6": (main, 175, 145, 30, "N6\ncount < venue minimum?", "diamond", PALE_GOLD),
-        "N7": (side, 175, 140, 28, "N7  return\nGROUP_SIZE", "box", PALE_RED),
-        "N8": (main, 130, 155, 30, "N8\nbooking lead time set?", "diamond", PALE_GOLD),
-        "N9": (main, 95, 145, 24, "N9  calculate earliest bookable", "box", CREAM),
-        "N10": (main, 60, 145, 30, "N10\nslot starts before earliest?", "diamond", PALE_GOLD),
-        "N11": (side, 60, 155, 28, "N11  return\nBOOKING_LEAD_TIME", "box", PALE_RED),
-        "N12": (side, 110, 120, 24, "N12  return None", "box", PALE_GREEN),
-        "N13": (main, 18, 90, 22, "N13  Exit", "oval", PALE_GREEN),
+IV_NODES = {f"N{i}" for i in range(1, 11)}
+IV_EDGES = [
+    ("N1", "N2"), ("N2", "N3"), ("N3", "N4"), ("N3", "N7"),
+    ("N4", "N6"), ("N4", "N5"), ("N5", "N6"), ("N5", "N3"),
+    ("N6", "N10"), ("N7", "N8"), ("N7", "N10"), ("N8", "N9"),
+    ("N8", "N7"), ("N9", "N10"),
+]
+IV_PATHS = [
+    ["N1", "N2", "N3", "N7", "N10"],
+    ["N1", "N2", "N3", "N4", "N6", "N10"],
+    ["N1", "N2", "N3", "N4", "N5", "N6", "N10"],
+    ["N1", "N2", "N3", "N4", "N5", "N3", "N7", "N10"],
+    ["N1", "N2", "N3", "N4", "N5", "N3", "N4", "N5", "N3", "N7", "N8", "N9", "N10"],
+    ["N1", "N2", "N3", "N4", "N5", "N3", "N4", "N5", "N3", "N7", "N8", "N7", "N10"],
+]
+
+PA_NODES = {f"N{i}" for i in range(1, 16)}
+PA_EDGES = [
+    ("N1", "N2"), ("N2", "N3"), ("N2", "N4"), ("N3", "N15"),
+    ("N4", "N5"), ("N4", "N6"), ("N5", "N15"), ("N6", "N7"),
+    ("N6", "N10"), ("N7", "N8"), ("N7", "N6"), ("N8", "N9"),
+    ("N8", "N6"), ("N9", "N15"), ("N10", "N11"), ("N10", "N14"),
+    ("N11", "N12"), ("N11", "N10"), ("N12", "N13"), ("N12", "N10"),
+    ("N13", "N15"), ("N14", "N15"),
+]
+PA_PATHS = [
+    ["N1", "N2", "N4", "N6", "N10", "N14", "N15"],
+    ["N1", "N2", "N3", "N15"],
+    ["N1", "N2", "N4", "N5", "N15"],
+    ["N1", "N2", "N4", "N6", "N7", "N6", "N10", "N14", "N15"],
+    ["N1", "N2", "N4", "N6", "N7", "N8", "N6", "N10", "N14", "N15"],
+    ["N1", "N2", "N4", "N6", "N7", "N8", "N9", "N15"],
+    ["N1", "N2", "N4", "N6", "N10", "N11", "N10", "N14", "N15"],
+    ["N1", "N2", "N4", "N6", "N10", "N11", "N12", "N10", "N14", "N15"],
+    ["N1", "N2", "N4", "N6", "N10", "N11", "N12", "N13", "N15"],
+]
+
+
+def _rational_rank(matrix: list[list[int]]) -> int:
+    rows = [[Fraction(value) for value in row] for row in matrix]
+    rank = 0
+    for column in range(len(rows[0]) if rows else 0):
+        pivot = next((index for index in range(rank, len(rows)) if rows[index][column]), None)
+        if pivot is None:
+            continue
+        rows[rank], rows[pivot] = rows[pivot], rows[rank]
+        divisor = rows[rank][column]
+        rows[rank] = [value / divisor for value in rows[rank]]
+        for index in range(len(rows)):
+            if index != rank and rows[index][column]:
+                factor = rows[index][column]
+                rows[index] = [a - factor * b for a, b in zip(rows[index], rows[rank], strict=True)]
+        rank += 1
+    return rank
+
+
+def verify_basis_graph(nodes: set[str], edges: list[tuple[str, str]], paths: list[list[str]]) -> int:
+    """Verify graph membership, edge coverage and independent path-vector rank."""
+    assert len(edges) == len(set(edges)), "graph contains duplicate directed edges"
+    assert {node for edge in edges for node in edge} <= nodes
+    edge_index = {edge: index for index, edge in enumerate(edges)}
+    vectors: list[list[int]] = []
+    covered: set[tuple[str, str]] = set()
+    for path in paths:
+        assert path and set(path) <= nodes
+        vector = [0] * len(edges)
+        for edge in zip(path, path[1:], strict=False):
+            assert edge in edge_index, f"path uses undeclared edge: {edge}"
+            vector[edge_index[edge]] += 1
+            covered.add(edge)
+        vectors.append(vector)
+    assert covered == set(edges), f"uncovered edges: {set(edges) - covered}"
+    return _rational_rank(vectors)
+
+
+def intervals_chart() -> Drawing:
+    drawing = Drawing(500, 315)
+    positions = {
+        "N1": (70, 292, "N1 Entry"), "N2": (70, 252, "N2\nsort intervals"),
+        "N3": (70, 205, "N3\nnext interval?"), "N4": (70, 155, "N4\nstart before range?"),
+        "N5": (70, 105, "N5\nend after range?"), "N6": (255, 130, "N6\nraise range 422"),
+        "N7": (70, 48, "N7\nnext pair?"), "N8": (245, 48, "N8\noverlap?"),
+        "N9": (405, 48, "N9\nraise overlap 422"), "N10": (255, 10, "N10 Common exit"),
     }
-    for values in nodes.values():
-        add_node(d, *values)
-    add_arrow(d, main, 334, main, 325)
-    add_arrow(d, main + 72, 310, side - 73, 310, "T")
-    add_arrow(d, main, 295, main, 280, "F")
-    add_arrow(d, main, 250, main, 235, "T")
-    add_arrow(d, main + 70, 265, side - 60, 122, "F")
-    add_arrow(d, main, 205, main, 190, "T")
-    add_arrow(d, main + 75, 220, main + 75, 130, "F")
-    add_arrow(d, main + 72, 175, side - 70, 175, "T")
-    add_arrow(d, main, 160, main, 145, "F")
-    add_arrow(d, main, 115, main, 107, "T")
-    add_arrow(d, main + 77, 130, side - 60, 110, "F")
-    add_arrow(d, main, 83, main, 75)
-    add_arrow(d, main + 72, 60, side - 78, 60, "T")
-    add_arrow(d, main + 70, 60, side - 60, 98, "F")
-    for x, y in [(side, 296), (side, 161), (side, 46), (side, 98)]:
-        add_arrow(d, x, y, main + 45, 18, dashed=True)
-    return d
+    decisions = {"N3", "N4", "N5", "N7", "N8"}
+    terminals = {"N1", "N10"}
+    for node, (x, y, label) in positions.items():
+        add_node(drawing, x, y, 106 if node not in {"N6", "N9"} else 120, 28, label,
+                 decision=node in decisions, terminal=node in terminals)
+    for index, (start, end) in enumerate(IV_EDGES, 1):
+        if (start, end) == ("N5", "N3"):
+            drawing.add(Line(70, 91, 14, 91, strokeColor=MUTED, strokeWidth=0.85))
+            drawing.add(Line(14, 91, 14, 205, strokeColor=MUTED, strokeWidth=0.85))
+            add_arrow(drawing, 14, 205, 70, 191, "E8")
+            continue
+        x1, y1, _ = positions[start]; x2, y2, _ = positions[end]
+        add_arrow(drawing, x1, y1 - 14, x2, y2 + 14, f"E{index}")
+    return drawing
 
 
-def availability_chart() -> Drawing:
-    d = Drawing(480, 285)
-    main, side = 190, 390
-    nodes = {
-        "N1": (main, 271, 105, 24, "N1  Entry", "oval", PALE_GREEN),
-        "N2": (main, 235, 145, 28, "N2\nresponse record missing?", "diamond", PALE_GOLD),
-        "N3": (side, 235, 135, 26, "N3  return\nNO_RESPONSE", "box", PALE_RED),
-        "N4": (main, 190, 140, 28, "N4\nrecord withdrawn?", "diamond", PALE_GOLD),
-        "N5": (side, 190, 135, 26, "N5  return\nWITHDRAWN", "box", PALE_RED),
-        "N6": (main, 145, 140, 28, "N6\nany BUSY overlap?", "diamond", PALE_GOLD),
-        "N7": (side, 145, 135, 26, "N7  return\nUNAVAILABLE", "box", PALE_RED),
-        "N8": (main, 100, 155, 28, "N8\nslot fully inside AVAILABLE?", "diamond", PALE_GOLD),
-        "N9": (side, 100, 135, 26, "N9  return\nAVAILABLE", "box", PALE_GREEN),
-        "N10": (main, 55, 135, 28, "N10  return\nUNAVAILABLE", "box", PALE_RED),
-        "N11": (main, 16, 90, 22, "N11  Exit", "oval", PALE_GREEN),
+def participant_chart() -> Drawing:
+    drawing = Drawing(500, 305)
+    positions = {
+        "N1": (70, 287, "N1 Entry"), "N2": (70, 257, "N2\nno response?"),
+        "N3": (420, 257, "N3\nNO_RESPONSE"), "N4": (70, 217, "N4\nwithdrawn?"),
+        "N5": (420, 217, "N5\nWITHDRAWN"), "N6": (70, 172, "N6\nnext BUSY?"),
+        "N7": (235, 172, "N7\nbusy.start < end?"), "N8": (365, 150, "N8\nstart < busy.end?"),
+        "N9": (420, 115, "N9\nUNAVAILABLE"), "N10": (70, 102, "N10\nnext AVAILABLE?"),
+        "N11": (235, 102, "N11\navail.start <= start?"), "N12": (365, 80, "N12\nend <= avail.end?"),
+        "N13": (420, 45, "N13\nAVAILABLE"), "N14": (70, 45, "N14\nUNAVAILABLE"),
+        "N15": (245, 10, "N15 Common exit"),
     }
-    for values in nodes.values():
-        add_node(d, *values)
-    add_arrow(d, main, 259, main, 249)
-    add_arrow(d, main + 72, 235, side - 68, 235, "T")
-    add_arrow(d, main, 221, main, 204, "F")
-    add_arrow(d, main + 70, 190, side - 68, 190, "T")
-    add_arrow(d, main, 176, main, 159, "F")
-    add_arrow(d, main + 70, 145, side - 68, 145, "T")
-    add_arrow(d, main, 131, main, 114, "F")
-    add_arrow(d, main + 77, 100, side - 68, 100, "T")
-    add_arrow(d, main, 86, main, 69, "F")
-    add_arrow(d, main, 41, main, 28)
-    for x, y in [(side, 222), (side, 177), (side, 132), (side, 87)]:
-        add_arrow(d, x, y, main + 45, 16, dashed=True)
-    return d
+    decisions = {"N2", "N4", "N6", "N7", "N8", "N10", "N11", "N12"}
+    terminals = {"N1", "N15"}
+    for node, (x, y, label) in positions.items():
+        add_node(drawing, x, y, 108, 27, label, decision=node in decisions, terminal=node in terminals)
+    for index, (start, end) in enumerate(PA_EDGES, 1):
+        x1, y1, _ = positions[start]; x2, y2, _ = positions[end]
+        add_arrow(drawing, x1, y1 - 13, x2, y2 + 13, f"E{index}")
+    return drawing
 
 
-def load_results() -> set[str]:
+def load_junit() -> set[str]:
     root = ET.parse(JUNIT).getroot()
-    failures = root.findall(".//failure")
-    errors = root.findall(".//error")
-    assert not failures and not errors, "JUnit evidence contains a failing or errored case"
+    assert not root.findall(".//failure") and not root.findall(".//error")
     return {case.attrib["name"] for case in root.findall(".//testcase")}
 
 
+def load_srs_text() -> str:
+    document = Document(SRS)
+    chunks = [paragraph.text for paragraph in document.paragraphs]
+    for table in document.tables:
+        for row in table.rows:
+            chunks.extend(cell.text for cell in row.cells)
+    text = "\n".join(chunks)
+    for fragment in (
+        "Version 2.3", "BEST_AVAILABLE_BELOW_THRESHOLD", "NO_TIMESLOT_MEETS_THRESHOLD",
+        "requested Minimum-Attendee Threshold", "actual attendance",
+    ):
+        assert fragment in text, f"SRS v2.3 oracle missing: {fragment}"
+    return text
+
+
+def source_method(path: Path, class_name: str, method_name: str) -> str:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            for child in node.body:
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child.name == method_name:
+                    lines = source.splitlines()
+                    return "\n".join(
+                        f"{number:>4}  {lines[number - 1]}"
+                        for number in range(child.lineno, child.end_lineno + 1)
+                    )
+    raise AssertionError(f"method not found: {class_name}.{method_name}")
+
+
 black_cases = [
-    ("BB-DUR-01", "FR-A1.1", "duration=14 min", "Reject below 15", "ValueError: duration must be 15 to 480 minutes (FR-A1.1)", "test_bb_dur_01_rejects_duration_14_below_minimum"),
-    ("BB-DUR-02", "FR-A1.1", "duration=15 min", "Accept minimum", "RunStatus.OK; ranked options returned", "test_bb_dur_02_accepts_duration_15_at_minimum"),
-    ("BB-DUR-03", "FR-A1.1", "duration=480 min", "Accept maximum", "RunStatus.OK; ranked options returned", "test_bb_dur_03_accepts_duration_480_at_maximum"),
-    ("BB-DUR-04", "FR-A1.1", "duration=481 min", "Reject above 480", "ValueError: duration must be 15 to 480 minutes (FR-A1.1)", "test_bb_dur_04_rejects_duration_481_above_maximum"),
-    ("BB-THR-01", "FR-D1 / UC-09", "2 overlap; threshold=2", "OK with two attendees", "RunStatus.OK; all ranked options have attendee_count=2", "test_bb_thr_01_returns_ok_when_threshold_is_met"),
-    ("BB-THR-02", "UC-09 recovery", "best=2; requested=3", "Label best-available fallback", "BEST_AVAILABLE_BELOW_THRESHOLD; two-attendee options; warning names 3", "test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_missed"),
-    ("BB-THR-03", "FR-D1 / UC-09", "no overlap of 2; threshold=2", "No eligible timeslot; no routing", "NO_TIMESLOT_MEETS_THRESHOLD; 0 combinations; 0 routing calls", "test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form"),
-    ("BB-VEN-01", "FR-C3", "activity=badminton; venue=football", "No supporting venue", "NO_SUPPORTING_VENUES; no ranked options", "test_bb_ven_01_returns_no_supporting_venues_for_wrong_activity_partition"),
-    ("BB-LOC-01", "FR-C4 / NFR-3", "all locations invalid/unavailable", "No centroid; no routing", "NO_VALID_LOCATIONS; no ranked options; 0 routing calls", "test_bb_loc_01_returns_no_valid_locations_when_centroid_cannot_be_computed"),
-    ("BB-RTE-01", "NFR-3 / NFR-8", "provider UNAVAILABLE; minutes=None", "Keep data unavailable; never invent 0", "All combinations DATA_UNAVAILABLE; all minutes=None; no ranking", "test_bb_rte_01_marks_unavailable_provider_data_without_fabricating_a_journey"),
-    ("BB-RTE-02", "NFR-3", "provider raises RuntimeError", "Contain error and continue safely", "All travel statuses ERROR; all combinations DATA_UNAVAILABLE", "test_bb_rte_02_contains_provider_exception_as_error_status"),
-    ("BB-JRN-01", "FR-D3", "journey=60 min; cap=60", "Keep boundary value", "RunStatus.OK; ranked options; limit flags False", "test_bb_jrn_01_keeps_journey_at_60_minute_limit"),
-    ("BB-JRN-02", "FR-D3", "journey=61 min; cap=60", "Exclude above cap", "No ranked options; every reason JOURNEY_LIMIT", "test_bb_jrn_02_excludes_journey_one_minute_above_limit"),
-    ("BB-WGT-01", "FR-D9", "attendance weight=0%", "Accept minimum", "RunStatus.OK; reported weight=0; ranked options returned", "test_bb_wgt_01_accepts_zero_percent_attendance_weight"),
-    ("BB-WGT-02", "FR-D9", "attendance weight=100%", "Accept maximum", "RunStatus.OK; reported weight=100; ranked options returned", "test_bb_wgt_02_accepts_100_percent_attendance_weight"),
-    ("BB-WGT-03", "FR-D9", "attendance weight=-1%", "Reject below 0", "ValueError: attendance weight must be between 0 and 100", "test_bb_wgt_03_rejects_weight_minus_one_below_minimum"),
-    ("BB-WGT-04", "FR-D9", "attendance weight=101%", "Reject above 100", "ValueError: attendance weight must be between 0 and 100", "test_bb_wgt_04_rejects_weight_101_above_maximum"),
+    ("BB-DUR-01", "FR-A1.1", "duration 14", "Reject below 15", "ValueError: duration must be 15 to 480 minutes", "test_bb_dur_01_rejects_duration_14_below_minimum"),
+    ("BB-DUR-02", "FR-A1.1", "duration 15", "Accept lower boundary", "OK; ranked; slot duration 15", "test_bb_dur_02_accepts_duration_15_at_minimum"),
+    ("BB-DUR-03", "FR-A1.1", "duration 480", "Accept upper boundary", "OK; ranked; slot duration 480", "test_bb_dur_03_accepts_duration_480_at_maximum"),
+    ("BB-DUR-04", "FR-A1.1", "duration 481", "Reject above 480", "ValueError: duration must be 15 to 480 minutes", "test_bb_dur_04_rejects_duration_481_above_maximum"),
+    ("BB-DUR-05", "FR-A1.1", "duration 16", "Accept valid neighbour", "OK; all generated slots are 16 minutes", "test_bb_dur_05_accepts_duration_16_just_above_minimum"),
+    ("BB-DUR-06", "FR-A1.1", "duration 479", "Accept valid neighbour", "OK; all generated slots are 479 minutes", "test_bb_dur_06_accepts_duration_479_just_below_maximum"),
+    ("BB-THR-01", "FR-D1", "2 available; requested 2", "Normal result", "OK; all ranked attendee_count=2", "test_bb_thr_01_returns_ok_when_threshold_is_met"),
+    ("BB-THR-02", "FR-D1.1 / FR-E1.1", "best 2; requested 3", "Label near match; preserve 3", "BEST_AVAILABLE_BELOW_THRESHOLD; threshold 3; actual 2; warning names both", "test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_missed"),
+    ("BB-THR-03", "FR-D1.1", "best 1; requested 2", "No group result; no routing", "NO_TIMESLOT_MEETS_THRESHOLD; 0 combinations; 0 route calls", "test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form"),
+    ("BB-THR-04", "FR-A4", "threshold 0", "Reject non-positive value", "422-boundary ValueError with exact public message", "test_bb_thr_04_rejects_zero_threshold_as_non_positive"),
+    ("BB-THR-05", "FR-A4 / FR-D1", "1 available; requested 1", "Accept explicit positive value", "OK; threshold 1; ranked attendee_count=1", "test_bb_thr_05_accepts_explicit_threshold_one_for_one_available_participant"),
+    ("BB-VEN-01", "FR-C3", "badminton; football-only venue", "No supporting venue", "NO_SUPPORTING_VENUES; no ranked options", "test_bb_ven_01_returns_no_supporting_venues_for_wrong_activity_partition"),
+    ("BB-VEN-02", "FR-C3 / FR-C4", "mixed supporting/non-supporting", "Filter before shortlist", "Only badminton-hall appears in shortlist and ranking", "test_bb_ven_02_filters_mixed_venues_before_shortlisting_and_ranking"),
+    ("BB-LOC-01", "FR-C4 / NFR-3", "all origins invalid/unavailable", "No centroid; no routing", "NO_VALID_LOCATIONS; 0 route calls", "test_bb_loc_01_returns_no_valid_locations_when_centroid_cannot_be_computed"),
+    ("BB-RTE-01", "NFR-3", "UNAVAILABLE; minutes None", "Never invent duration", "DATA_UNAVAILABLE; minutes None; no rank", "test_bb_rte_01_marks_unavailable_provider_data_without_fabricating_a_journey"),
+    ("BB-RTE-02", "NFR-3", "router raises RuntimeError", "Contain provider error", "Travel ERROR; DATA_UNAVAILABLE; no rank", "test_bb_rte_02_contains_provider_exception_as_error_status"),
+    ("BB-RTE-03", "NFR-3", "AVAILABLE but minutes None", "Treat malformed success as error", "Travel ERROR; minutes None; DATA_UNAVAILABLE", "test_bb_rte_03_treats_available_route_without_duration_as_unusable"),
+    ("BB-JRN-01", "FR-D3", "journey 60; cap 60", "Keep exact boundary", "OK; ranked; exceeded flag False", "test_bb_jrn_01_keeps_journey_at_60_minute_limit"),
+    ("BB-JRN-02", "FR-D3", "journey 61; cap 60", "Exclude above cap", "No rank; exclusion JOURNEY_LIMIT", "test_bb_jrn_02_excludes_journey_one_minute_above_limit"),
+    ("BB-WGT-01", "FR-D9", "weight 0%", "Accept lower boundary", "OK; reported weight 0; ranked", "test_bb_wgt_01_accepts_zero_percent_attendance_weight"),
+    ("BB-WGT-02", "FR-D9", "weight 100%", "Accept upper boundary", "OK; reported weight 100; ranked", "test_bb_wgt_02_accepts_100_percent_attendance_weight"),
+    ("BB-WGT-03", "FR-D9", "weight -1%", "Reject below 0", "ValueError: weight must be between 0 and 100", "test_bb_wgt_03_rejects_weight_minus_one_below_minimum"),
+    ("BB-WGT-04", "FR-D9", "weight 101%", "Reject above 100", "ValueError: weight must be between 0 and 100", "test_bb_wgt_04_rejects_weight_101_above_maximum"),
+    ("BB-WGT-05", "FR-D9.1", "weight 10%", "Accept discrete neighbour", "OK; reported weight 10; ranked", "test_bb_wgt_05_accepts_ten_percent_valid_neighbour"),
+    ("BB-WGT-06", "FR-D9.1", "weight 90%", "Accept discrete neighbour", "OK; reported weight 90; ranked", "test_bb_wgt_06_accepts_ninety_percent_valid_neighbour"),
 ]
 
-pr_paths = [
-    ("WB-PR-01", "N1-N2(T)-N3-N13", "count=2, threshold=3", "BELOW_THRESHOLD", "BELOW_THRESHOLD", "test_wb_pr_01_path_below_session_threshold"),
-    ("WB-PR-02", "N1-N2(F)-N4(F)-N12-N13", "park; count=threshold=3", "None", "None", "test_wb_pr_02_path_non_sports_skips_sports_constraints"),
-    ("WB-PR-03", "N1-N2(F)-N4(T)-N5(T)-N6(T)-N7-N13", "sports; count=3; venue min=4", "GROUP_SIZE", "GROUP_SIZE", "test_wb_pr_03_path_sports_group_size_failure"),
-    ("WB-PR-04", "N1-N2(F)-N4(T)-N5(F)-N8(F)-N12-N13", "sports; no min; no lead", "None", "None", "test_wb_pr_04_path_sports_has_no_group_or_lead_constraint"),
-    ("WB-PR-05", "N1-N2(F)-N4(T)-N5(T)-N6(F)-N8(F)-N12-N13", "sports; count=min=4; no lead", "None", "None", "test_wb_pr_05_path_sports_meets_group_size_without_lead_constraint"),
-    ("WB-PR-06", "N1-N2(F)-N4(T)-N5(T)-N6(F)-N8(T)-N9-N10(T)-N11-N13", "24h lead; start only 23h away", "BOOKING_LEAD_TIME", "BOOKING_LEAD_TIME", "test_wb_pr_06_path_sports_booking_lead_failure"),
-    ("WB-PR-07", "N1-N2(F)-N4(T)-N5(T)-N6(F)-N8(T)-N9-N10(F)-N12-N13", "24h lead; start exactly 24h away", "None", "None", "test_wb_pr_07_path_sports_exactly_meets_booking_lead_boundary"),
+iv_cases = [
+    ("WB-IV-01", "N1-N2-N3(F)-N7(F)-N10", "no intervals", "[]", "[]", "test_wb_iv_01_path_empty_input_returns_empty_ordered_list"),
+    ("WB-IV-02", "N1-N2-N3(T)-N4(T)-N6-N10", "start = range start - 1 min", "422 range detail", "422; exact range detail", "test_wb_iv_02_path_start_one_minute_before_session_is_rejected"),
+    ("WB-IV-03", "N1-N2-N3(T)-N4(F)-N5(T)-N6-N10", "end = range end + 1 min", "422 range detail", "422; exact range detail", "test_wb_iv_03_path_end_one_minute_after_session_is_rejected"),
+    ("WB-IV-04", "N1-N2-N3(T)-N4(F)-N5(F)-N3(F)-N7(F)-N10", "exact range endpoints", "one unchanged interval", "one unchanged interval", "test_wb_iv_04_path_exact_session_endpoints_are_accepted"),
+    ("WB-IV-05", "loop valid intervals; N7(T)-N8(T)-N9-N10", "two intervals overlap 1 min", "422 overlap detail", "422; exact overlap detail", "test_wb_iv_05_path_one_minute_overlap_is_rejected"),
+    ("WB-IV-06", "loop valid intervals; N7(T)-N8(F)-N7(F)-N10", "unsorted touching intervals", "sorted; touching accepted", "literal ascending endpoints", "test_wb_iv_06_path_unsorted_touching_intervals_are_sorted_and_accepted"),
 ]
 
-pa_paths = [
-    ("WB-PA-01", "N1-N2(T)-N3-N11", "record_status=None", "NO_RESPONSE", "NO_RESPONSE", "test_wb_pa_01_path_no_response"),
-    ("WB-PA-02", "N1-N2(F)-N4(T)-N5-N11", "record_status=WITHDRAWN", "WITHDRAWN", "WITHDRAWN", "test_wb_pa_02_path_withdrawn"),
-    ("WB-PA-03", "N1-N2(F)-N4(F)-N6(T)-N7-N11", "available covers slot; BUSY overlaps", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_03_path_busy_overlap_overrides_available_time"),
-    ("WB-PA-04", "N1-N2(F)-N4(F)-N6(F)-N8(T)-N9-N11", "slot fully inside AVAILABLE", "AVAILABLE", "AVAILABLE", "test_wb_pa_04_path_slot_is_fully_covered_by_available_time"),
-    ("WB-PA-05", "N1-N2(F)-N4(F)-N6(F)-N8(F)-N10-N11", "AVAILABLE ends 1 min early", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_05_path_partial_coverage_is_unavailable"),
+pa_cases = [
+    ("WB-PA-01", "N1-N2(F)-N4(F)-N6(F)-N10(F)-N14-N15", "active; no blocks", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_01_path_active_with_no_blocks_is_unavailable"),
+    ("WB-PA-02", "N1-N2(T)-N3-N15", "record missing", "NO_RESPONSE", "NO_RESPONSE", "test_wb_pa_02_path_no_response_returns_no_response"),
+    ("WB-PA-03", "N1-N2(F)-N4(T)-N5-N15", "withdrawn; AVAILABLE exists", "WITHDRAWN", "WITHDRAWN", "test_wb_pa_03_path_withdrawn_returns_withdrawn"),
+    ("WB-PA-04", "N6(T)-N7(F)-N6(F)-N10(F)-N14-N15", "BUSY starts at slot end", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_04_path_busy_starting_at_slot_end_does_not_overlap"),
+    ("WB-PA-05", "N6(T)-N7(T)-N8(F)-N6(F)-N10(F)-N14-N15", "BUSY ends at slot start", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_05_path_busy_ending_at_slot_start_does_not_overlap"),
+    ("WB-PA-06", "N6(T)-N7(T)-N8(T)-N9-N15", "1-min BUSY overlap + full AVAILABLE", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability"),
+    ("WB-PA-07", "N6(F)-N10(T)-N11(F)-N10(F)-N14-N15", "AVAILABLE starts 1 min late", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_07_path_available_block_starting_one_minute_late_is_unavailable"),
+    ("WB-PA-08", "N6(F)-N10(T)-N11(T)-N12(F)-N10(F)-N14-N15", "AVAILABLE ends 1 min early", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable"),
+    ("WB-PA-09", "N6(F)-N10(T)-N11(T)-N12(T)-N13-N15", "exact full AVAILABLE coverage", "AVAILABLE", "AVAILABLE", "test_wb_pa_09_path_exact_full_available_coverage_is_available"),
+]
+
+pr_cases = [
+    ("WB-PR-01", "below Session threshold", "BELOW_THRESHOLD", "test_wb_pr_01_path_below_session_threshold"),
+    ("WB-PR-02", "park skips sports constraints", "None", "test_wb_pr_02_path_non_sports_skips_sports_constraints"),
+    ("WB-PR-03", "sports group-size failure", "GROUP_SIZE", "test_wb_pr_03_path_sports_group_size_failure"),
+    ("WB-PR-04", "sports: no group/lead constraints", "None", "test_wb_pr_04_path_sports_has_no_group_or_lead_constraint"),
+    ("WB-PR-05", "sports: meets group; no lead", "None", "test_wb_pr_05_path_sports_meets_group_size_without_lead_constraint"),
+    ("WB-PR-06", "booking lead fails by 1 hour", "BOOKING_LEAD_TIME", "test_wb_pr_06_path_sports_booking_lead_failure"),
+    ("WB-PR-07", "exact booking-lead boundary", "None", "test_wb_pr_07_path_sports_exactly_meets_booking_lead_boundary"),
 ]
 
 
-def source_excerpt(path: Path, start: int, end: int) -> str:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    return "\n".join(f"{number:>4}  {lines[number - 1]}" for number in range(start, end + 1))
+def case_page(rows, part: str, mutations: list[tuple[str, str]]) -> list:
+    data = [["Case", "Req.", "Input / precondition", "Expected", "Actual", "Result"]]
+    data += [[row[0], row[1], row[2], row[3], row[4], "PASS"] for row in rows]
+    return section(f"Black-box Cases and Results ({part})", "3") + [
+        report_table(
+            data, [20 * mm, 20 * mm, 31 * mm, 36 * mm, 53 * mm, 13 * mm],
+            font_size=7.0, leading=9.0, padding=5.0,
+        ),
+        Spacer(1, 4 * mm),
+        p("Actual outputs above are literal conditions asserted by the named automated test; they are not copied from the expected-output column.", "Small"),
+        p("Mutation check", "Subsection"),
+        report_table(
+            [["Representative defect", "Test that would fail"]] + [list(item) for item in mutations],
+            [108 * mm, 65 * mm], font_size=7.3, leading=9.3,
+        ),
+    ]
 
 
-def build_story():
-    passed_names = load_results()
-    expected_names = {row[-1] for row in black_cases + pr_paths + pa_paths}
-    assert passed_names == expected_names, f"Case mismatch: missing={expected_names-passed_names}; extra={passed_names-expected_names}"
-    assert 18 - 13 + 2 == 7
-    assert 14 - 11 + 2 == 5
+def build_story() -> list:
+    passed = load_junit()
+    load_srs_text()
+    assessed = black_cases + iv_cases + pa_cases
+    assessed_names = {row[-1] for row in assessed}
+    supplemental_names = {row[-1] for row in pr_cases}
+    assert len(black_cases) == 25 and len(iv_cases) == 6 and len(pa_cases) == 9
+    assert len(assessed) == 40 and len(pr_cases) == 7
+    assert len(assessed_names) == 40 and len(supplemental_names) == 7
+    assert passed == assessed_names | supplemental_names
+    assert verify_basis_graph(IV_NODES, IV_EDGES, IV_PATHS) == 6
+    assert verify_basis_graph(PA_NODES, PA_EDGES, PA_PATHS) == 9
 
-    story = []
+    story: list = []
     story += [Spacer(1, 22 * mm), p("SC2006 LAB 4", "Subtitle"), Spacer(1, 4 * mm)]
     story += [p("Software Testing Report", "ReportTitle")]
-    story += [p("Black-box equivalence-class and boundary-value testing, plus white-box basis-path testing", "Subtitle")]
-    story += [Spacer(1, 10 * mm), HRFlowable(width="45%", thickness=3, color=GOLD, hAlign="LEFT"), Spacer(1, 10 * mm)]
+    story += [p("Pilot-aligned black-box and white-box evidence", "Subtitle")]
+    story += [Spacer(1, 9 * mm), HRFlowable(width="45%", thickness=3, color=GOLD, hAlign="LEFT"), Spacer(1, 10 * mm)]
     cover_data = [
-        ["Work product", "Test Cases and Testing Results"],
+        ["Work product", "Test cases, control-flow graphs and executed results"],
         ["Prepared by", "Group 1 - Software Testing"],
         ["System", "Group Scheduling Application"],
-        ["Target code", "feature/production-pilot tree at 26cb622"],
+        ["Production baseline", f"feature/production-pilot @ {PILOT_SHA[:7]}"],
+        ["SRS oracle", "SRS v2.3 - Pilot near-match recovery"],
         ["Execution date", "7 November 2026 (Asia/Singapore)"],
-        ["Result", "29/29 assessment tests passed"],
+        ["Assessment result", "40/40 assessed tests passed"],
+        ["Total Lab 4 evidence", "47/47 tests passed (includes 7 supplemental regressions)"],
     ]
-    cover = Table([[p(a, "Small"), p(b, "Small")] for a, b in cover_data], colWidths=[36 * mm, 105 * mm])
+    cover = Table([[p(a, "Small"), p(b, "Small")] for a, b in cover_data], colWidths=[40 * mm, 112 * mm])
     cover.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), PALE_GREEN),
-        ("TEXTCOLOR", (0, 0), (0, -1), GREEN),
-        ("GRID", (0, 0), (-1, -1), 0.5, GRID),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("BACKGROUND", (0, 0), (0, -1), PALE_GREEN), ("TEXTCOLOR", (0, 0), (0, -1), GREEN),
+        ("GRID", (0, 0), (-1, -1), 0.5, GRID), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
-    story += [cover, Spacer(1, 14 * mm), p("Submission scope", "Subsection")]
-    story += [p("This report satisfies Lab 4 Manual sections 3.2.1-3.2.4. It tests one important control boundary using equivalence classes and boundary values, tests two complex methods using basis paths, minimises redundant inputs, and records input, expected output, actual output, and pass/fail results.")]
+    story += [cover, Spacer(1, 10 * mm), p("Submission scope", "Subsection")]
+    story += [p("This report satisfies Lab 4 Manual sections 3.2.1-3.2.4: one important control boundary is tested with equivalence classes and boundary values; two complex class methods are tested with basis paths; redundant cases are minimised; and every executed case records input, expected output, actual output and pass/fail status.")]
     story += [PageBreak()]
 
-    story += section("Executive Summary", "1")
-    story += [p("Black-box testing treats the recommendation control boundary as a sealed unit: tests provide complete recommendation requests and inspect only public results or validation errors. White-box testing reads the method structure, draws its control-flow graph, calculates cyclomatic complexity, and executes a basis set of independent paths.")]
-    story += [p("All 29 assessment-focused automated tests passed. The complete backend regression suite passed 293 tests; all 21 frontend tests, lint, and the production build also passed. No production behaviour was changed for this work product.", "Callout")]
-    story += [p("Selected test subjects", "Subsection")]
-    subject_data = [
-        ["Technique", "Selected unit", "Reason for selection"],
-        ["Black-box", "RecommendationEngine.generate()", "Core UC-09/UC-10 control boundary; validates the request and coordinates timeslots, venues, routing, feasibility, scoring, and ranking."],
-        ["White-box 1", "pre_routing_exclusion()", "Implements FR-D1, FR-D4, and FR-D5 with ordered feasibility decisions before external routing."],
-        ["White-box 2", "_ParticipantAvailability.status_for()", "Implements four distinct attendance states and the BUSY-overrides-AVAILABLE rule."],
+    story += section("Scope, Requirement Audit and Baseline", "1")
+    audit = [
+        ["Manual requirement", "Evidence", "Status"],
+        ["3.2.1 one control class", "RecommendationEngine.generate() boundary; Sections 2-3", "Met"],
+        ["3.2.1 equivalence classes", "Seven input characteristics; Section 2.1", "Met"],
+        ["3.2.1 boundary values", "Duration, threshold, journey and weight neighbours", "Met"],
+        ["3.2.2 two complex methods", "AvailabilityService._validate_intervals and _ParticipantAvailability.status_for", "Met"],
+        ["3.2.2 basis-path testing", "Two CFGs; V(G)=6 and V(G)=9; 15 assessed paths", "Met"],
+        ["3.2.3 minimise cases", "One representative per partition plus necessary boundary neighbours", "Met"],
+        ["3.2.4 execute/document", "47-case JUnit; every assessment row has expected/actual/result", "Met"],
     ]
-    story += [table(subject_data, [24 * mm, 59 * mm, 90 * mm], font_size=7.4, leading=9.5), Spacer(1, 4 * mm)]
-    story += [p("Environment and evidence", "Subsection")]
-    env_data = [
-        ["Item", "Value"],
-        ["Language/runtime", "Python 3.13.5"],
-        ["Test framework", "pytest 8.3.5"],
-        ["Assessment run", "29 passed, 0 failed, 0 errors"],
-        ["Full backend regression", "293 passed; one dependency deprecation warning"],
-        ["Frontend verification", "21 tests passed; lint passed; production build passed"],
-        ["External routing", "Deterministic test double at provider port; all application logic remains real"],
+    story += [report_table(audit, [49 * mm, 104 * mm, 20 * mm], font_size=7.2, leading=9.2)]
+    story += [p("1.1 Authoritative baseline", "Subsection")]
+    story += [p(f"The tested product baseline is <b>feature/production-pilot</b> at commit <b>{PILOT_SHA}</b>. SRS v2.3 is the requirements oracle for implemented Pilot behaviour. The assessment does not treat an older SRS contradiction as a reason to change working production behaviour.")]
+    baseline = [
+        ["Evidence layer", "Version / result"],
+        ["Production code", f"Pilot commit {PILOT_SHA[:7]}"],
+        ["Requirements", "SRS v2.3: normal threshold, labelled recovery, explicit no-result"],
+        ["Assessment tests", "25 black-box + 6 interval paths + 9 attendance paths = 40"],
+        ["Supplemental regressions", "7 pre-routing feasibility paths"],
+        ["Fresh Lab 4 run", "47 passed; 0 failed; 0 errors"],
     ]
-    story += [table(env_data, [44 * mm, 129 * mm], font_size=7.4, leading=9.5), PageBreak()]
+    story += [report_table(baseline, [48 * mm, 125 * mm], font_size=7.5, leading=9.6)]
+    story += [p("No production method was changed to make this report pass; only SRS documentation, tests, CFGs and this report were added or strengthened.", "Callout"), PageBreak()]
 
     story += section("Black-box Test Design", "2")
-    story += [p("The control boundary is tested without using its internal branch structure. Inputs were partitioned by externally observable behaviour. Boundary values use the nearest invalid value and each valid endpoint where numeric limits exist.")]
-    story += [p("2.1 Equivalence classes", "Subsection")]
-    eq_data = [
-        ["Input characteristic", "Equivalence classes", "Representative cases"],
-        ["Session duration", "Invalid low: <15; valid: 15-480; invalid high: >480", "BB-DUR-01..04"],
-        ["Attendance outcome", "Threshold met; requested threshold missed but best>=2; no two-person group", "BB-THR-01..03"],
-        ["Venue compatibility", "At least one supporting venue; no supporting venue", "BB-THR-01, BB-VEN-01"],
-        ["Participant locations", "At least one active valid origin; no valid origin", "BB-THR-01, BB-LOC-01"],
-        ["Routing provider", "Available duration; explicitly unavailable; exception/error", "BB-JRN-01, BB-RTE-01..02"],
-        ["Individual journey", "At or below 60-minute cap; above cap", "BB-JRN-01..02"],
-        ["Attendance weight", "Invalid low: <0; valid: 0-100; invalid high: >100", "BB-WGT-01..04"],
+    story += [p("The recommendation engine is treated as a sealed control boundary. Tests construct complete RecommendationRequest values and assert only returned RecommendationResult data or public validation errors. The deterministic router replaces only the external network provider; candidate generation, feasibility, routing adaptation, scoring and ranking remain real production code.")]
+    eq = [
+        ["Characteristic", "Equivalence classes", "Cases"],
+        ["Duration", "invalid <15; valid 15-480; invalid >480", "BB-DUR-01..06"],
+        ["Requested attendance", "met; missed with best>=2; best<2; invalid 0; explicit 1", "BB-THR-01..05"],
+        ["Venue support", "none; mixed catalogue with one supporting venue", "BB-VEN-01..02"],
+        ["Starting locations", "valid centroid; no valid active origins", "BB-THR-01, BB-LOC-01"],
+        ["Routing result", "available; unavailable; exception; malformed available-without-duration", "BB-JRN-01, BB-RTE-01..03"],
+        ["Journey duration", "at cap; above cap", "BB-JRN-01..02"],
+        ["Attendance weight", "invalid <0; valid 0-100 in 10% steps; invalid >100", "BB-WGT-01..06"],
     ]
-    story += [table(eq_data, [42 * mm, 88 * mm, 43 * mm], font_size=7.2, leading=9.2)]
-    story += [p("2.2 Boundary-value analysis", "Subsection")]
-    bva_data = [
-        ["Boundary", "Values selected", "Expected behaviour", "Cases"],
-        ["Duration minimum 15", "14, 15", "14 rejected; 15 accepted", "BB-DUR-01..02"],
-        ["Duration maximum 480", "480, 481", "480 accepted; 481 rejected", "BB-DUR-03..04"],
-        ["Weight minimum 0", "-1, 0", "-1 rejected; 0 accepted", "BB-WGT-03, BB-WGT-01"],
-        ["Weight maximum 100", "100, 101", "100 accepted; 101 rejected", "BB-WGT-02, BB-WGT-04"],
-        ["Journey cap 60", "60, 61", "60 retained; 61 excluded", "BB-JRN-01..02"],
+    story += [p("2.1 Equivalence classes", "Subsection"), report_table(eq, [38 * mm, 99 * mm, 36 * mm], font_size=7.1, leading=9.1)]
+    bva = [
+        ["Boundary", "Selected values", "Expected relation", "Cases"],
+        ["Duration minimum 15", "14, 15, 16", "reject / accept / accept", "BB-DUR-01,02,05"],
+        ["Duration maximum 480", "479, 480, 481", "accept / accept / reject", "BB-DUR-06,03,04"],
+        ["Threshold positivity", "0, 1", "reject / accept", "BB-THR-04,05"],
+        ["Journey cap 60", "60, 61", "retain / exclude", "BB-JRN-01,02"],
+        ["Weight minimum 0", "-1, 0, 10", "reject / accept / accept", "BB-WGT-03,01,05"],
+        ["Weight maximum 100", "90, 100, 101", "accept / accept / reject", "BB-WGT-06,02,04"],
     ]
-    story += [table(bva_data, [43 * mm, 34 * mm, 62 * mm, 34 * mm], font_size=7.2, leading=9.2)]
-    story += [p("2.3 Minimisation rationale", "Subsection")]
-    story += [p("The test set uses one representative for each non-boundary partition and the adjacent values around every numeric boundary. Cases deliberately cover several compatible conditions at once. For example, BB-THR-01 also supplies a valid venue, valid locations, successful routing, and a valid mid-range weight. Additional combinations that would repeat the same observable class were omitted.")]
-    story += [PageBreak()]
+    story += [p("2.2 Boundary-value analysis", "Subsection"), report_table(bva, [40 * mm, 38 * mm, 55 * mm, 40 * mm], font_size=7.1, leading=9.1)]
+    story += [p("2.3 Minimisation", "Subsection"), p("Each non-boundary partition has one representative. Numeric boundaries use invalid/endpoint/valid-neighbour values where they distinguish a realistic defect. Shared valid setup is reused rather than multiplying unrelated combinations. The 25 cases therefore improve fault detection without a Cartesian-product explosion."), PageBreak()]
 
-    story += section("Black-box Test Cases and Results", "3")
-    black_table = [["Case", "Req.", "Test input / precondition", "Expected output", "Actual output", "Result"]]
-    black_table += [[row[0], row[1], row[2], row[3], row[4], "PASS"] for row in black_cases]
-    story += [table(black_table, [20 * mm, 20 * mm, 42 * mm, 36 * mm, 48 * mm, 14 * mm], font_size=6.15, leading=7.7)]
-    story += [Spacer(1, 5 * mm), p("Evidence: every row above corresponds to one passing pytest function with the same case ID. The JUnit result contained 17 black-box cases, 0 failures, and 0 errors.", "Callout"), Spacer(1, 3 * mm)]
-    story += [KeepTogether(section("White-box Method 1: Pre-routing Exclusion", "4") + [p("This method applies feasibility rules in priority order before any routing request: the session threshold (FR-D1), sports-facility minimum group size (FR-D4), and sports-facility booking lead time (FR-D5). The compound minimum-group expression is split into two short-circuit decisions in the control-flow graph.")]), PageBreak()]
+    story += case_page(black_cases[:9], "1 of 3", [
+        ("Accept a 14-minute Session or alter a generated 16-minute slot", "BB-DUR-01 / BB-DUR-05"),
+        ("Replace the preserved requested threshold 3 with another value", "BB-THR-02"),
+        ("Route even though no two-person group can form", "BB-THR-03"),
+    ]) + [PageBreak()]
+    story += case_page(black_cases[9:17], "2 of 3", [
+        ("Let an unsupported football venue enter a badminton shortlist", "BB-VEN-02"),
+        ("Convert a missing route duration into a fabricated zero", "BB-RTE-01 / BB-RTE-03"),
+        ("Propagate a provider exception instead of containing it", "BB-RTE-02"),
+    ]) + [PageBreak()]
+    story += case_page(black_cases[17:], "3 of 3", [
+        ("Exclude the exact 60-minute journey boundary", "BB-JRN-01"),
+        ("Accept an attendance weight outside 0-100", "BB-WGT-03 / BB-WGT-04"),
+        ("Snap the valid 10% or 90% neighbour to another value", "BB-WGT-05 / BB-WGT-06"),
+    ])
+    story += [p("Near-match trace", "Subsection"), p("BB-THR-02 specifically proves the SRS v2.3 recovery contract: the result status is BEST_AVAILABLE_BELOW_THRESHOLD, the requested Minimum-Attendee Threshold remains 3, every ranked option has actual attendance 2, and the warning communicates requested 3 versus actual 2. BB-THR-03 proves that a best attendance below 2 returns NO_TIMESLOT_MEETS_THRESHOLD and performs no routing."), PageBreak()]
 
-    story += [p("4.1 Source excerpt", "Subsection")]
-    story += [Preformatted(source_excerpt(ROOT / "backend/app/recommender/feasibility.py", 20, 44), styles["CodeBlock"])]
-    story += [p("4.2 Control-flow graph", "Subsection"), pre_routing_chart()]
-    story += [p("Figure 1. Control-flow graph for pre_routing_exclusion(). Node numbering is identical to the DOT source committed with the tests.", "Small"), PageBreak()]
-    story += [p("4.3 Cyclomatic complexity", "Subsection")]
-    complexity1 = [
-        ["Calculation", "Value"],
-        ["Predicate method", "6 decision nodes + 1 = 7"],
-        ["Graph method", "E - N + 2 = 18 - 13 + 2 = 7"],
-        ["Required independent paths", "7"],
+    story += section("White-box Method 1: Interval Validation", "4")
+    story += [p("Selected method: <b>AvailabilityService._validate_intervals()</b>. It sorts submissions, enforces the Session date range, rejects overlap, and returns a deterministic order. These branches protect availability data before persistence and recommendation generation.")]
+    story += [p("4.1 Production source excerpt", "Subsection"), Preformatted(source_method(ROOT / "backend/app/services/application_services.py", "AvailabilityService", "_validate_intervals"), styles["CodeBlock"])]
+    story += [p("4.2 Control-flow graph", "Subsection"), intervals_chart(), p("Figure 1. Fixed CFG convention: loop conditions and both range comparisons are decisions; exceptions converge at a common graph exit.", "Small")]
+    complexity_iv = [
+        ["Measure", "Value"], ["Nodes", "N = 10"], ["Edges", "E = 14"],
+        ["Graph formula", "14 - 10 + 2 = 6"], ["Predicate formula", "5 decisions + 1 = 6"],
+        ["Verified path-vector rank", "6 over the rational numbers"],
     ]
-    story += [table(complexity1, [55 * mm, 118 * mm], font_size=8, leading=10)]
-    story += [p("4.4 Independent paths and executed results", "Subsection")]
-    pr_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
-    pr_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pr_paths]
-    story += [table(pr_table, [19 * mm, 58 * mm, 42 * mm, 25 * mm, 25 * mm, 14 * mm], font_size=6.9, leading=8.7)]
-    story += [Spacer(1, 5 * mm)]
+    story += [p("4.3 Cyclomatic complexity", "Subsection"), report_table(complexity_iv, [55 * mm, 118 * mm], font_size=7.7, leading=9.7), PageBreak()]
 
-    story += section("White-box Method 2: Participant Attendance Status", "5")
-    story += [p("This method preserves four distinct participant states. A missing response and a withdrawn response are returned before interval processing. For an active response, any BUSY overlap overrides AVAILABLE time; otherwise the slot must be fully contained in an AVAILABLE block.")]
-    story += [p("5.1 Source excerpt", "Subsection")]
-    story += [Preformatted(source_excerpt(ROOT / "backend/app/recommender/candidate_generation.py", 111, 124), styles["CodeBlock"])]
-    story += [KeepTogether([
-        p("5.2 Control-flow graph", "Subsection"),
-        availability_chart(),
-        p("Figure 2. Application-level CFG for _ParticipantAvailability.status_for(). Each any(...) result is one boolean decision; Python iterator internals are outside this graph's abstraction boundary.", "Small"),
-    ])]
-    story += [p("5.3 Cyclomatic complexity", "Subsection")]
-    complexity2 = [
-        ["Calculation", "Value"],
-        ["Predicate method", "4 decision nodes + 1 = 5"],
-        ["Graph method", "E - N + 2 = 14 - 11 + 2 = 5"],
-        ["Required independent paths", "5"],
+    story += section("Interval-validation Basis Paths", "4.4")
+    iv_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
+    iv_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in iv_cases]
+    story += [report_table(iv_table, [17 * mm, 53 * mm, 34 * mm, 28 * mm, 29 * mm, 13 * mm], font_size=6.4, leading=8.0)]
+    story += [p("The six paths cover all 14 directed CFG edges. Their edge-incidence vectors have rational rank 6, so the path set is independent under the stated graph convention. IV-04 and IV-06 distinguish inclusive range endpoints and non-overlapping touching intervals from the two error paths.", "Callout")]
+    story += [p("Faults detected by this set", "Subsection")]
+    story += [p("A missing range check fails IV-02 or IV-03; changing inclusive endpoints to strict ones fails IV-04; changing the overlap comparison from < to <= fails IV-06; omitting sorting fails the literal ordering assertion in IV-06; and returning an incorrect public status/detail fails IV-02, IV-03 or IV-05."), PageBreak()]
+
+    story += section("White-box Method 2: Participant Attendance", "5")
+    story += [p("Selected method: <b>_ParticipantAvailability.status_for()</b>. It preserves NO_RESPONSE and WITHDRAWN, gives BUSY precedence over AVAILABLE, and requires full slot coverage. For CFG purposes each any(...) generator is expanded into iterator-next plus its two short-circuit comparisons; this convention is used consistently in graph, formulas and paths.")]
+    story += [p("5.1 Production source excerpt", "Subsection"), Preformatted(source_method(ROOT / "backend/app/recommender/candidate_generation.py", "_ParticipantAvailability", "status_for"), styles["CodeBlock"])]
+    story += [p("5.2 Control-flow graph", "Subsection"), participant_chart(), p("Figure 2. Expanded short-circuit CFG. Boundary paths show that intervals touching—but not crossing—the slot boundary do not overlap.", "Small")]
+    complexity_pa = [
+        ["Measure", "Value"], ["Nodes", "N = 15"], ["Edges", "E = 22"],
+        ["Graph formula", "22 - 15 + 2 = 9"], ["Predicate formula", "8 decisions + 1 = 9"],
+        ["Verified path-vector rank", "9 over the rational numbers"],
     ]
-    story += [table(complexity2, [55 * mm, 118 * mm], font_size=8, leading=10)]
-    story += [p("5.4 Independent paths and executed results", "Subsection")]
+    story += [p("5.3 Cyclomatic complexity", "Subsection"), report_table(complexity_pa, [55 * mm, 118 * mm], font_size=7.7, leading=9.7), PageBreak()]
+
+    story += section("Participant-attendance Basis Paths", "5.4")
     pa_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
-    pa_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pa_paths]
-    story += [table(pa_table, [19 * mm, 55 * mm, 48 * mm, 23 * mm, 23 * mm, 14 * mm], font_size=6.9, leading=8.7)]
+    pa_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pa_cases]
+    story += [report_table(pa_table, [17 * mm, 58 * mm, 35 * mm, 25 * mm, 25 * mm, 13 * mm], font_size=6.15, leading=7.7)]
+    story += [p("The nine paths cover all 22 directed edges and have rational rank 9. PA-04 and PA-05 exercise opposite short-circuit boundary outcomes; PA-06 proves BUSY precedence; PA-07 and PA-08 isolate the two full-containment comparisons; PA-09 reaches the only AVAILABLE return.", "Callout")]
     story += [PageBreak()]
 
+    story += section("Supplemental Pre-routing Regressions", "6")
+    story += [p("Seven existing pre_routing_exclusion() paths remain executable regression evidence, but they are not counted as either of the two assessed white-box methods. This prevents the report from discarding useful tests while keeping the Manual 3.2.2 scope precise.")]
+    pr_table = [["Case", "Regression condition", "Observed", "Result"]]
+    pr_table += [[r[0], r[1], r[2], "PASS"] for r in pr_cases]
+    story += [report_table(pr_table, [23 * mm, 92 * mm, 42 * mm, 16 * mm], font_size=7.2, leading=9.2)]
+    story += [p("6.1 Why supplemental", "Subsection"), p("The assessed complexity and independent-path claims apply only to _validate_intervals() and status_for(). The seven WB-PR cases are reported separately so their presence cannot inflate the 15 assessed white-box count.")]
+    totals = [
+        ["Evidence group", "Count", "Pass", "Assessment role"],
+        ["Black-box (BB)", "25", "25", "Assessed"],
+        ["Interval paths (WB-IV)", "6", "6", "Assessed method 1"],
+        ["Attendance paths (WB-PA)", "9", "9", "Assessed method 2"],
+        ["Pre-routing regressions (WB-PR)", "7", "7", "Supplemental"],
+        ["Total", "47", "47", "40 assessed + 7 supplemental"],
+    ]
+    story += [report_table(totals, [64 * mm, 22 * mm, 22 * mm, 65 * mm], font_size=7.4, leading=9.4), PageBreak()]
+
+    story += section("Execution Evidence and Cross-check", "7")
     result_data = [
         ["Verification", "Observed result", "Status"],
-        ["Lab 4 black-box tests", "17 passed, 0 failed, 0 errors", "PASS"],
-        ["Lab 4 white-box tests", "12 passed, 0 failed, 0 errors", "PASS"],
-        ["Combined Lab 4 JUnit run", "29 passed, 0 failed, 0 errors", "PASS"],
-        ["Full backend regression", "293 passed; 1 third-party deprecation warning", "PASS"],
-        ["Frontend unit/UI tests", "21 passed", "PASS"],
-        ["Frontend lint", "oxlint exit code 0", "PASS"],
-        ["Frontend production build", "152 modules transformed; build exit code 0", "PASS"],
+        ["Black-box test file", "25 passed", "PASS"],
+        ["Assessed white-box file", "15 passed", "PASS"],
+        ["Supplemental pre-routing file", "7 passed", "PASS"],
+        ["Fresh Lab 4 JUnit", "47 passed; 0 failed; 0 errors", "PASS"],
+        ["Full backend regression", "311 passed; one third-party deprecation warning", "PASS"],
+        ["Frontend Node + UI tests", "21 passed", "PASS"],
+        ["Frontend lint", "exit code 0", "PASS"],
+        ["Frontend production build", "152 modules transformed; exit code 0", "PASS"],
     ]
-    story += [KeepTogether(section("Execution Evidence and Cross-check", "6") + [table(result_data, [58 * mm, 89 * mm, 26 * mm], font_size=7.7, leading=9.8)])]
-    compliance = [
-        ["Manual requirement", "Evidence in this report", "Status"],
-        ["3.2.1: one important control class", "RecommendationEngine.generate(); Sections 2-3", "Met"],
-        ["3.2.1: equivalence classes", "Section 2.1 and BB test rows", "Met"],
-        ["3.2.1: boundary values", "Section 2.2; 14/15, 480/481, -1/0, 100/101, 60/61", "Met"],
-        ["3.2.2: two complex methods", "Sections 4 and 5", "Met"],
-        ["3.2.2: basis-path testing", "Two CFGs, two complexity calculations, 12 path cases", "Met"],
-        ["3.2.3: minimise cases", "One representative per partition plus boundary neighbours; Section 2.3", "Met"],
-        ["3.2.4: execute and document", "Every row has input, expected, actual, and result; Section 6", "Met"],
-    ]
-    story += [KeepTogether([p("6.1 Manual compliance matrix", "Subsection"), table(compliance, [51 * mm, 96 * mm, 26 * mm], font_size=7.3, leading=9.4)])]
-    story += [p("6.2 Consistency checks", "Subsection")]
+    story += [report_table(result_data, [58 * mm, 90 * mm, 25 * mm], font_size=7.4, leading=9.4)]
+    story += [p("7.1 One-to-one evidence mapping", "Subsection"), p("The generator refuses to build unless the JUnit names are exactly the 40 assessment mappings plus the seven supplemental mappings. Duplicate assessment IDs, missing cases, extra cases, failures and errors are structural failures—not prose warnings.")]
     checks = [
-        "Each of the 29 report case IDs maps one-to-one to a unique JUnit test name.",
-        "Every equivalence class and boundary in Section 2 maps to at least one executed case.",
-        "The first CFG has N=13 and E=18; both formulas give V(G)=7; seven independent paths were executed.",
-        "The second CFG has N=11 and E=14; both formulas give V(G)=5; five independent paths were executed.",
-        "Actual outputs are literal observations asserted by the final passing tests, not restatements of expected output.",
-        "No secrets, access tokens, credentials, or personal availability data appear in this report.",
+        ["Cross-check", "Verified value"],
+        ["Assessment IDs", "40 unique: 25 BB + 6 WB-IV + 9 WB-PA"],
+        ["Supplemental IDs", "7 unique WB-PR"],
+        ["JUnit total", "47 unique passing test names"],
+        ["Interval graph", "N=10, E=14, full edge coverage, path rank 6"],
+        ["Attendance graph", "N=15, E=22, full edge coverage, path rank 9"],
+        ["SRS oracle", "v2.3 contains both recovery statuses and requested-versus-actual disclosure"],
+        ["Secrets/placeholders", "Rejected by final extracted-text assertions"],
     ]
-    story += [Table([[p(f"{i + 1}.", "Small"), p(item, "Small")] for i, item in enumerate(checks)], colWidths=[8 * mm, 165 * mm], style=TableStyle([("VALIGN", (0,0), (-1,-1), "TOP"), ("BOTTOMPADDING", (0,0), (-1,-1), 3)])), Spacer(1, 3 * mm)]
+    story += [report_table(checks, [55 * mm, 118 * mm], font_size=7.4, leading=9.4), PageBreak()]
 
-    story += section("Limitations and Conclusion", "7")
-    story += [p("7.1 Limitations", "Subsection")]
-    story += [p("The black-box control tests use a deterministic router at the external provider port so that boundary outcomes are reproducible and do not depend on OneMap availability. This is appropriate for unit-level control-class testing but does not replace the separate deployed smoke test of Google authentication, OneMap, PostgreSQL, and Render. The report also uses an application-level CFG: the internal iteration performed by Python's any(...) is treated as part of expression evaluation rather than as a separate business-logic decision.")]
-    story += [p("7.2 Conclusion", "Subsection")]
-    story += [p("The selected tests provide systematic evidence for the recommendation control logic and two complex decision methods. Equivalence partitioning, boundary-value analysis, and basis-path testing were applied consistently; redundant combinations were avoided; all expected and actual results are traceable to automated test IDs; and the full regression checks found no introduced failures.", "Callout")]
-    story += [p("<b>Reference.</b> SC2006 Lab 4 Manual: Implementation, Testing, and Preparation for Demo, sections 3.2.1-3.2.4. Source code and automated tests are available on branch lab4/software-testing-report.", "Small")]
+    story += section("SRS v2.3 Traceability and Consistency", "8")
+    trace = [
+        ["Requirement / rule", "Executed evidence", "Consistency result"],
+        ["FR-A1.1 duration 15-480", "BB-DUR-01..06", "Invalid neighbours rejected; endpoints and valid neighbours accepted"],
+        ["FR-A4 positive threshold", "BB-THR-04..05", "0 rejected; explicit 1 accepted"],
+        ["FR-D1 normal threshold", "BB-THR-01", "Threshold-met recommendations remain normal"],
+        ["FR-D1.1 recovery", "BB-THR-02..03", "Near match labelled; below system minimum returns no candidates/routing"],
+        ["FR-E1.1 disclosure", "BB-THR-02", "Requested 3 preserved; actual 2; warning contains both values"],
+        ["FR-C3 activity support", "BB-VEN-01..02", "Unsupported venues excluded before shortlist/ranking"],
+        ["FR-D3 60-minute cap", "BB-JRN-01..02", "60 retained; 61 excluded"],
+        ["NFR-3 missing data", "BB-RTE-01..03", "No zero duration fabricated; unavailable/error remains explicit"],
+        ["Availability interval integrity", "WB-IV-01..06", "Range, overlap, sorting and touching boundaries verified"],
+        ["Attendance-state semantics", "WB-PA-01..09", "Four states, BUSY precedence and full coverage verified"],
+    ]
+    story += [report_table(trace, [45 * mm, 42 * mm, 86 * mm], font_size=6.9, leading=8.8)]
+    story += [p("8.1 Pilot near-match decision", "Subsection")]
+    story += [p("The production Pilot intentionally avoids a dead end when the requested threshold is narrowly missed. If the best actual attendance is at least the default minimum of 2, it returns only the best-attended slots as <b>BEST_AVAILABLE_BELOW_THRESHOLD</b>, keeps the requested value unchanged, and warns with requested versus actual attendance. If best attendance is below 2, it returns <b>NO_TIMESLOT_MEETS_THRESHOLD</b> before routing. This is now stated in SRS v2.3 and tested without changing production code.", "Callout")]
+    story += [p("8.2 Internal consistency", "Subsection"), p("The same fixed graph convention, node labels, edge sets, path IDs and complexity values are used by the DOT files, automated test names, generator data and this PDF. The report therefore has no conflict between diagrams, formulas and executed evidence."), PageBreak()]
+
+    story += section("Limitations, Conclusion and Reproduction", "9")
+    story += [p("9.1 Limitations", "Subsection")]
+    story += [p("The black-box control tests use a deterministic router at the external provider port so results do not depend on OneMap availability. They validate the application's handling of provider success, absence, malformed success and exceptions, but do not replace deployed integration smoke tests for Google OAuth, OneMap, PostgreSQL or Render. Basis-path coverage proves the selected control-flow paths, not every possible data combination or system-level concurrency condition.")]
+    story += [p("9.2 Conclusion", "Subsection")]
+    story += [p("The deliverable meets Lab 4 Manual sections 3.2.1-3.2.4 with current Pilot evidence: 25 black-box equivalence/boundary cases, 15 assessed basis paths for two class methods, and seven clearly separated supplemental regressions. All 47 tests passed, the two CFG calculations and path-vector ranks agree, and the SRS v2.3 near-match behavior is fully traceable.", "Callout")]
+    story += [p("9.3 Reproduction", "Subsection")]
+    commands = (
+        "cd backend\n"
+        "python -m pytest tests/lab4 -q --junitxml=../.superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml\n"
+        "cd ..\n"
+        "python docs/lab4/generate_report.py\n"
+        "python docs/srs/update_v2_3.py 'docs/SRS Group Scheduling Application v2.3.docx'"
+    )
+    story += [Preformatted(commands, styles["CodeBlock"])]
+    story += [p("Artifacts: docs/SRS Group Scheduling Application v2.3.docx/.pdf and docs/lab4/Lab4_Software_Testing_Report.pdf. Test and CFG sources are committed on branch lab4/software-testing-report.", "Small")]
+    story += [Spacer(1, 4 * mm), p("Reference: SC2006 Lab 4 Manual, sections 3.2.1-3.2.4.", "Small")]
     return story
 
 
-def main():
+def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    doc = ReportDocTemplate(str(OUTPUT))
-    doc.build(build_story(), canvasmaker=InvariantCanvas)
+    ReportDocTemplate(str(OUTPUT)).build(build_story(), canvasmaker=InvariantCanvas)
     reader = PdfReader(str(OUTPUT))
-    assert 8 <= len(reader.pages) <= 10, f"Compact report must be 8-10 pages, got {len(reader.pages)}"
-    report_ids = {row[0] for row in black_cases + pr_paths + pa_paths}
-    assert len(report_ids) == 29, f"Expected 29 unique report IDs, got {len(report_ids)}"
+    page_count = len(reader.pages)
+    assert 12 <= page_count <= 15, f"report must be 12-15 pages, got {page_count}"
     extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
-    for token in [
-        "29/29 assessment tests passed",
-        "BB-DUR-01",
-        "WB-PR-07",
-        "WB-PA-05",
-        "E - N + 2 = 18 - 13 + 2 = 7",
-        "E - N + 2 = 14 - 11 + 2 = 5",
-        "3.2.1",
-        "3.2.2",
-        "3.2.3",
-        "3.2.4: execute and document",
-    ]:
-        assert token in extracted, f"Missing required report text: {token}"
-    print(f"created {OUTPUT} ({len(reader.pages)} pages)")
+    report_ids = {row[0] for row in black_cases + iv_cases + pa_cases}
+    assert len(report_ids) == 40
+    assert len(black_cases) == 25 and len(iv_cases) + len(pa_cases) == 15 and len(pr_cases) == 7
+    assert len(load_junit()) == 47
+    for token in (
+        "40/40 assessed tests passed", "47/47 tests passed", "25 black-box",
+        "14 - 10 + 2 = 6", "22 - 15 + 2 = 9",
+        "3.2.1", "3.2.2", "3.2.3", "3.2.4",
+        "BEST_AVAILABLE_BELOW_THRESHOLD", "NO_TIMESLOT_MEETS_THRESHOLD",
+        "requested 3", "actual 2", PILOT_SHA[:7],
+        "WB-IV-06", "WB-PA-09", "WB-PR-07",
+    ):
+        assert token in extracted, f"missing report token: {token}"
+    lowered = extracted.lower()
+    for forbidden in (
+        "lorem ipsum", "todo:", "[placeholder]", "eyjhb gcioi".replace(" ", ""),
+        "authorization: bearer", "client_secret=", "api_key=",
+    ):
+        assert forbidden not in lowered, f"forbidden secret/placeholder marker: {forbidden}"
+    print(f"created {OUTPUT} ({page_count} pages; 40 assessed + 7 supplemental = 47 passed)")
 
 
 if __name__ == "__main__":

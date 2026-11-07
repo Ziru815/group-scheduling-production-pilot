@@ -1,60 +1,87 @@
 # Lab 4 Software Testing Deliverable
 
-**Work product:** Black-box and white-box test cases and executed results
+**Work product:** black-box and white-box test cases, control-flow graphs, executed results and traceability
 
 **Author:** Group 1 — Software Testing
 
-**Target version:** `feature/production-pilot` tree at `26cb622`
+**Production baseline:** `feature/production-pilot` at `26cb622a8724018f7582225c640d5ac93e9ac8a5`
 
-## Selected units
+**Requirements oracle:** `docs/SRS Group Scheduling Application v2.3.docx`
 
-- **Black-box control boundary:** `RecommendationEngine.generate()` (`backend/app/recommender/engine.py`)
-- **White-box method 1:** `pre_routing_exclusion()` (`backend/app/recommender/feasibility.py`)
-- **White-box method 2:** `_ParticipantAvailability.status_for()` (`backend/app/recommender/candidate_generation.py`)
+## Assessed scope
 
-The black-box file observes only request inputs, returned result objects, and public validation errors. The white-box file follows the numbered paths in the two DOT control-flow graphs in this directory.
+- **Black-box control boundary:** `RecommendationEngine.generate()` — 25 equivalence-class and boundary-value cases.
+- **White-box method 1:** `AvailabilityService._validate_intervals()` — six basis paths; `N=10`, `E=14`, `V(G)=6`.
+- **White-box method 2:** `_ParticipantAvailability.status_for()` — nine basis paths; `N=15`, `E=22`, `V(G)=9` under the documented expanded short-circuit convention.
+- **Supplemental evidence:** seven `pre_routing_exclusion()` regressions, reported separately and not counted as either assessed white-box method.
+
+The fresh Lab 4 result is **47 passed**: 40 assessed cases plus seven supplemental regressions.
 
 ## Files
 
-- `backend/tests/lab4/test_black_box_recommendation_engine.py` — 17 equivalence-class and boundary-value cases (`BB-*`)
-- `backend/tests/lab4/test_white_box_basis_paths.py` — 12 basis-path cases (`WB-PR-*`, `WB-PA-*`)
-- `docs/lab4/cfg_pre_routing_exclusion.dot` — control-flow graph for the first method
-- `docs/lab4/cfg_participant_availability.dot` — control-flow graph for the second method
-- `docs/lab4/generate_report.py` — reproducible ReportLab source with structural consistency checks
-- `docs/lab4/Lab4_Software_Testing_Report.pdf` — submission report with expected and actual results
+- `backend/tests/lab4/test_black_box_recommendation_engine.py` — 25 `BB-*` cases.
+- `backend/tests/lab4/test_white_box_basis_paths.py` — six `WB-IV-*` and nine `WB-PA-*` assessed paths.
+- `backend/tests/lab4/test_pre_routing_regressions.py` — seven supplemental `WB-PR-*` cases.
+- `docs/lab4/cfg_validate_intervals.dot` — interval-validation CFG.
+- `docs/lab4/cfg_participant_availability.dot` — participant-attendance CFG.
+- `docs/lab4/generate_report.py` — deterministic ReportLab generator with JUnit, graph-rank, SRS and PDF structural checks.
+- `docs/lab4/Lab4_Software_Testing_Report.pdf` — 12–15 page submission report.
+- `docs/srs/update_v2_3.py` — deterministic SRS v2.3 generator/verifier.
+- `docs/SRS Group Scheduling Application v2.3.docx` and `.pdf` — Pilot-aligned SRS artifacts.
 
-## Regenerate the PDF
+## 1. Generate or verify SRS v2.3
 
-The generator requires Python 3.13 with `reportlab` and `pypdf`. It also reads the 29-case JUnit result so the report cannot silently drift from the automated tests.
-
-From the repository root:
+From the repository root, using a Python environment with `python-docx` and `lxml`:
 
 ```bash
-mkdir -p .superpowers/sdd/2026-11-07-lab4-software-testing-report
+python docs/srs/update_v2_3.py \
+  "docs/SRS Group Scheduling Application v2.2.docx" \
+  "docs/SRS Group Scheduling Application v2.3.docx"
+
+python docs/srs/update_v2_3.py \
+  "docs/SRS Group Scheduling Application v2.3.docx"
+```
+
+The source v2.2 file is retained unchanged. The generated v2.3 documents the Pilot's labelled best-available recovery and adopted values 60 / 2 / 10 / 30.
+
+## 2. Generate fresh 47-case JUnit evidence
+
+```bash
+mkdir -p .superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report
 cd backend
 python -m pytest tests/lab4 -q \
-  --junitxml=../.superpowers/sdd/2026-11-07-lab4-software-testing-report/lab4-junit.xml
+  --junitxml=../.superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml
 cd ..
+```
+
+Expected result:
+
+```text
+47 passed
+```
+
+The JUnit file must contain exactly 25 `test_bb_*`, six `test_wb_iv_*`, nine `test_wb_pa_*` and seven `test_wb_pr_*` names with no failures or errors.
+
+## 3. Generate the deterministic PDF report
+
+The generator requires `reportlab`, `pypdf`, `python-docx` and `lxml`:
+
+```bash
 python docs/lab4/generate_report.py
 ```
 
-Expected generator result: one compact portrait-A4 PDF of 8-10 pages containing exactly 29 case IDs, both verified complexity formulas, and Manual 3.2.1-3.2.4 traceability.
+Expected result: a portrait-A4 PDF with 12–15 pages, exactly 40 unique assessed case IDs, the seven supplemental regressions, verified graph edge coverage/path-vector ranks, Manual 3.2.1–3.2.4 traceability and the SRS v2.3 near-match evidence.
 
-## Reproduce the assessment tests
-
-From `backend/`, with the project dependencies installed:
+To verify deterministic output, run the generator twice and compare SHA-256 hashes:
 
 ```bash
-python -m pytest tests/lab4 -vv
+python docs/lab4/generate_report.py
+shasum -a 256 docs/lab4/Lab4_Software_Testing_Report.pdf
+python docs/lab4/generate_report.py
+shasum -a 256 docs/lab4/Lab4_Software_Testing_Report.pdf
 ```
 
-Expected result for this revision:
-
-```text
-29 passed
-```
-
-Run the full regression checks:
+## 4. Reproduce all verification
 
 ```bash
 cd backend
@@ -66,18 +93,24 @@ npm run lint
 npm run build
 ```
 
-Verified environment: Python 3.13.5, pytest 8.3.5, Node.js 22-compatible project toolchain. The test routers are deterministic substitutes at the external OneMap routing boundary; the recommendation engine, feasibility logic, availability logic, scoring, and result objects are real production code.
+Verified baseline results:
+
+- backend: 311 passed; one third-party deprecation warning;
+- frontend Node/UI tests: 21 passed;
+- lint: passed;
+- production build: passed, 152 modules transformed.
+
+The test router is a deterministic substitute only at the external OneMap provider port. All recommendation, candidate-generation, feasibility, routing-adaptation, scoring and result logic under assessment is real production code.
 
 ## Case-ID convention
 
-- `BB-DUR-*` — session-duration boundaries
-- `BB-THR-*` — attendance-threshold partitions
-- `BB-VEN-*` — venue-support partition
-- `BB-LOC-*` — valid-location partition
-- `BB-RTE-*` — external-routing outcomes
-- `BB-JRN-*` — maximum-journey boundary
-- `BB-WGT-*` — attendance-weight boundaries
-- `WB-PR-*` — independent paths through `pre_routing_exclusion()`
-- `WB-PA-*` — independent paths through `_ParticipantAvailability.status_for()`
-
-For the second white-box method, each `any(...)` expression is represented as one application-level boolean decision. Iterator implementation details inside Python are outside the control-flow graph's selected abstraction boundary; this convention is stated in the PDF and used consistently in both complexity formulas.
+- `BB-DUR-*` — duration boundaries.
+- `BB-THR-*` — threshold partitions and Pilot near-match recovery.
+- `BB-VEN-*` — activity/venue support.
+- `BB-LOC-*` — valid-origin partition.
+- `BB-RTE-*` — provider outcomes and malformed responses.
+- `BB-JRN-*` — maximum-journey boundary.
+- `BB-WGT-*` — score-weight boundaries and valid neighbours.
+- `WB-IV-*` — independent paths through `_validate_intervals()`.
+- `WB-PA-*` — independent paths through `status_for()`.
+- `WB-PR-*` — supplemental pre-routing regressions.
