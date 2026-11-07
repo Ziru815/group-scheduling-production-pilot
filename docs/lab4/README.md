@@ -20,7 +20,25 @@ The black-box file observes only request inputs, returned result objects, and pu
 - `backend/tests/lab4/test_white_box_basis_paths.py` — 12 basis-path cases (`WB-PR-*`, `WB-PA-*`)
 - `docs/lab4/cfg_pre_routing_exclusion.dot` — control-flow graph for the first method
 - `docs/lab4/cfg_participant_availability.dot` — control-flow graph for the second method
+- `docs/lab4/generate_report.py` — reproducible ReportLab source with structural consistency checks
 - `docs/lab4/Lab4_Software_Testing_Report.pdf` — submission report with expected and actual results
+
+## Regenerate the PDF
+
+The generator requires Python 3.13 with `reportlab` and `pypdf`. It also reads the 29-case JUnit result so the report cannot silently drift from the automated tests.
+
+From the repository root:
+
+```bash
+mkdir -p .superpowers/sdd/2026-11-07-lab4-software-testing-report
+cd backend
+python -m pytest tests/lab4 -q \
+  --junitxml=../.superpowers/sdd/2026-11-07-lab4-software-testing-report/lab4-junit.xml
+cd ..
+python docs/lab4/generate_report.py
+```
+
+Expected generator result: one portrait-A4 PDF of 9-10 pages containing exactly 29 case IDs, both verified complexity formulas, and Manual 3.2.1-3.2.4 traceability.
 
 ## Reproduce the assessment tests
 
