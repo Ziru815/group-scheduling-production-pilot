@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from docx import Document
+from docx.oxml.ns import qn
 
 from docs.srs.update_v2_3 import create_v2_3
 
@@ -93,6 +94,14 @@ class SrsV23RegressionTests(TestCase):
         revision_text = " | ".join(cell.text for cell in self.document.tables[0].rows[-1].cells)
         self.assertIn("approved by Ziru Gao", revision_text)
         self.assertIn("as-built production Pilot", revision_text)
+
+    def test_configuration_rows_do_not_split_across_pages(self) -> None:
+        candidate_step = next(
+            row
+            for row in self.document.tables[42].rows
+            if row.cells[0].text == "CandidateTimeslotStepMinutes"
+        )
+        self.assertIsNotNone(candidate_step._tr.trPr.find(qn("w:cantSplit")))
 
     def test_recovery_resumes_with_venue_filtering_and_shortlisting(self) -> None:
         text = "\n".join(paragraph.text for paragraph in self.document.paragraphs)

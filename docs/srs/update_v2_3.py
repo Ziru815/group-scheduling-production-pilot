@@ -115,6 +115,16 @@ def set_row(row: etree._Element, values: list[str]) -> None:
         replace_text(cell, value)
 
 
+def keep_row_together(row: etree._Element) -> None:
+    """Prevent Word/LibreOffice from splitting a table row across two pages."""
+    properties = row.find("w:trPr", namespaces=NS)
+    if properties is None:
+        properties = etree.Element(W + "trPr")
+        row.insert(0, properties)
+    if properties.find("w:cantSplit", namespaces=NS) is None:
+        etree.SubElement(properties, W + "cantSplit")
+
+
 def insert_cloned_row_after(table: etree._Element, source_key: str, values: list[str]) -> None:
     source = find_row(table, source_key)
     cloned = deepcopy(source)
@@ -340,6 +350,7 @@ def update_document_xml(source: bytes) -> bytes:
         values[2] = value
         values[3] = related
         set_row(row, values)
+        keep_row_together(row)
 
     derived = tables[43]
     set_row(
