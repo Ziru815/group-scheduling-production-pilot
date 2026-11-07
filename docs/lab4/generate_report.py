@@ -12,6 +12,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfgen import canvas as pdfcanvas
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
@@ -44,6 +45,14 @@ RED = colors.HexColor("#8E3731")
 PALE_RED = colors.HexColor("#F7D8D5")
 WHITE = colors.white
 GRID = colors.HexColor("#C7CEC9")
+
+
+class InvariantCanvas(pdfcanvas.Canvas):
+    """Create byte-for-byte stable PDFs for unchanged report content."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs["invariant"] = 1
+        super().__init__(*args, **kwargs)
 
 
 styles = getSampleStyleSheet()
@@ -564,7 +573,7 @@ def build_story():
 def main():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     doc = ReportDocTemplate(str(OUTPUT))
-    doc.build(build_story())
+    doc.build(build_story(), canvasmaker=InvariantCanvas)
     reader = PdfReader(str(OUTPUT))
     assert 8 <= len(reader.pages) <= 10, f"Compact report must be 8-10 pages, got {len(reader.pages)}"
     report_ids = {row[0] for row in black_cases + pr_paths + pa_paths}
