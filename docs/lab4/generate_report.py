@@ -552,7 +552,7 @@ def build_story():
     story += [KeepTogether([p("6.1 Manual compliance matrix", "Subsection"), table(compliance, [51 * mm, 96 * mm, 26 * mm], font_size=7.3, leading=9.4)])]
     story += [p("6.2 Consistency checks", "Subsection")]
     checks = [
-        "All 29 report case IDs exactly match the 29 JUnit test names.",
+        "Each of the 29 report case IDs maps one-to-one to a unique JUnit test name.",
         "Every equivalence class and boundary in Section 2 maps to at least one executed case.",
         "The first CFG has N=13 and E=18; both formulas give V(G)=7; seven independent paths were executed.",
         "The second CFG has N=11 and E=14; both formulas give V(G)=5; five independent paths were executed.",
