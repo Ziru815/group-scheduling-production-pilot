@@ -1,5 +1,6 @@
 digraph participant_availability_status {
-  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42,
+  graph [rankdir=TB, bgcolor="transparent", pad=0.30, nodesep=0.55, ranksep=0.55,
+         outputorder=edgesfirst,
          label="_ParticipantAvailability.status_for — N=15, E=22, V(G)=9", labelloc=t,
          fontname="Helvetica", fontsize=12];
   node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650",
@@ -21,6 +22,11 @@ digraph participant_availability_status {
   N13 [label="N13  return AVAILABLE", fillcolor="#DCEBDF"];
   N14 [label="N14  return UNAVAILABLE\n(no full coverage)", fillcolor="#F7D8D5"];
   N15 [label="N15  Common exit", shape=oval, fillcolor="#DCEBDF"];
+
+  { rank=same; N2; N3; }
+  { rank=same; N4; N5; }
+  { rank=same; N6; N7; N8; N9; }
+  { rank=same; N10; N11; N12; N13; N14; }
 
   N1 -> N2 [label="E1"];
   N2 -> N3 [label="E2 T"];

@@ -1,5 +1,6 @@
 digraph validate_intervals {
-  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42,
+  graph [rankdir=TB, bgcolor="transparent", pad=0.30, nodesep=0.55, ranksep=0.55,
+         outputorder=edgesfirst,
          label="AvailabilityService._validate_intervals — N=10, E=14, V(G)=6", labelloc=t,
          fontname="Helvetica", fontsize=12];
   node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650",
@@ -16,6 +17,9 @@ digraph validate_intervals {
   N8 [label="N8  current.start < previous.end?", shape=diamond, fillcolor="#FFF1CC"];
   N9 [label="N9  raise 422\noverlap", fillcolor="#F7D8D5"];
   N10 [label="N10  Common exit\nreturn ordered or propagate 422", shape=oval, fillcolor="#DCEBDF"];
+
+  { rank=same; N4; N6; }
+  { rank=same; N7; N8; N9; }
 
   N1 -> N2 [label="E1"];
   N2 -> N3 [label="E2"];

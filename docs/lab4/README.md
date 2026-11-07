@@ -73,7 +73,7 @@ The generator requires `reportlab`, `pypdf`, `python-docx` and `lxml`:
 python docs/lab4/generate_report.py
 ```
 
-Expected result: a portrait-A4 PDF with 12–15 pages, exactly 40 unique assessed case IDs, the seven supplemental regressions, verified graph edge coverage/path-vector ranks, Manual 3.2.1–3.2.4 traceability and the SRS v2.3 near-match evidence.
+Expected result: a portrait-A4 PDF with 12–15 pages, exactly 40 unique assessed case IDs, eight supplemental guards, verified graph edge coverage/path-vector ranks, Manual 3.2.1–3.2.4 traceability and the SRS v2.3 near-match evidence.
 
 To verify deterministic output, run the generator twice and compare SHA-256 hashes:
 

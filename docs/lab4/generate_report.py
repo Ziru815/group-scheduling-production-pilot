@@ -35,9 +35,13 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "docs/lab4/Lab4_Software_Testing_Report.pdf"
-JUNIT = ROOT / ".superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml"
+JUNIT = ROOT / "docs/lab4/evidence/lab4-junit.xml"
 SRS = ROOT / "docs/SRS Group Scheduling Application v2.3.docx"
 PILOT_SHA = "26cb622a8724018f7582225c640d5ac93e9ac8a5"
+EVIDENCE_SHA = "57ee15814f7c8c5da7541f8e566b87d7fe85f7fe"
+REPOSITORY_URL = "https://github.com/Ziru815/group-scheduling-production-pilot"
+PILOT_URL = f"{REPOSITORY_URL}/commit/{PILOT_SHA}"
+EVIDENCE_URL = f"{REPOSITORY_URL}/commit/{EVIDENCE_SHA}"
 
 GREEN = colors.HexColor("#174A3A")
 MID_GREEN = colors.HexColor("#2F6650")
@@ -155,7 +159,7 @@ class ReportDocTemplate(BaseDocTemplate):
         super().__init__(
             filename, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm,
             topMargin=18 * mm, bottomMargin=16 * mm,
-            title="Lab 4 Software Testing Report", author="Group 1 - Software Testing",
+            title="Lab 4 Software Testing Report", author="Ziru Gao — Group 1, Software Testing",
             subject="SC2006 Lab 4 black-box and white-box testing",
         )
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="normal")
@@ -171,7 +175,7 @@ class ReportDocTemplate(BaseDocTemplate):
             canvas.drawString(self.leftMargin, A4[1] - 9 * mm, "SC2006 Lab 4 | Software Testing")
             canvas.drawRightString(
                 A4[0] - self.rightMargin, 9 * mm,
-                f"Group 1 - Software Testing     |     Page {doc.page}",
+                f"Ziru Gao | Group 1 Software Testing     |     Page {doc.page}",
             )
         canvas.restoreState()
 
@@ -190,6 +194,27 @@ def add_arrow(drawing: Drawing, x1, y1, x2, y2, label: str):
     ], fillColor=MUTED, strokeColor=MUTED))
     drawing.add(String(
         (x1 + x2) / 2 + 2, (y1 + y2) / 2 + 2, label,
+        fontName="Helvetica", fontSize=5.6, fillColor=MUTED,
+    ))
+
+
+def add_routed_arrow(drawing: Drawing, points, label: str, label_position):
+    """Draw an elbow-routed edge and keep the edge label clear of nodes."""
+    for (x1, y1), (x2, y2) in zip(points, points[1:], strict=False):
+        drawing.add(Line(x1, y1, x2, y2, strokeColor=MUTED, strokeWidth=0.85))
+    (x1, y1), (x2, y2) = points[-2], points[-1]
+    dx, dy = x2 - x1, y2 - y1
+    length = max((dx * dx + dy * dy) ** 0.5, 1)
+    ux, uy = dx / length, dy / length
+    px, py = -uy, ux
+    size = 4.3
+    drawing.add(Polygon([
+        x2, y2,
+        x2 - ux * size + px * size * 0.5, y2 - uy * size + py * size * 0.5,
+        x2 - ux * size - px * size * 0.5, y2 - uy * size - py * size * 0.5,
+    ], fillColor=MUTED, strokeColor=MUTED))
+    drawing.add(String(
+        label_position[0], label_position[1], label,
         fontName="Helvetica", fontSize=5.6, fillColor=MUTED,
     ))
 
@@ -292,49 +317,91 @@ def verify_basis_graph(nodes: set[str], edges: list[tuple[str, str]], paths: lis
 
 
 def intervals_chart() -> Drawing:
-    drawing = Drawing(500, 315)
+    drawing = Drawing(500, 325)
     positions = {
-        "N1": (70, 292, "N1 Entry"), "N2": (70, 252, "N2\nsort intervals"),
-        "N3": (70, 205, "N3\nnext interval?"), "N4": (70, 155, "N4\nstart before range?"),
-        "N5": (70, 105, "N5\nend after range?"), "N6": (255, 130, "N6\nraise range 422"),
-        "N7": (70, 48, "N7\nnext pair?"), "N8": (245, 48, "N8\noverlap?"),
-        "N9": (405, 48, "N9\nraise overlap 422"), "N10": (255, 10, "N10 Common exit"),
+        "N1": (250, 310, "N1 Entry"), "N2": (250, 270, "N2\nsort intervals"),
+        "N3": (250, 222, "N3\nnext interval?"), "N4": (135, 168, "N4\nstart before range?"),
+        "N5": (135, 108, "N5\nend after range?"), "N6": (365, 138, "N6\nraise range 422"),
+        "N7": (250, 61, "N7\nnext pair?"), "N8": (350, 61, "N8\noverlap?"),
+        "N9": (450, 61, "N9\nraise overlap 422"), "N10": (250, 14, "N10 Common exit"),
     }
     decisions = {"N3", "N4", "N5", "N7", "N8"}
     terminals = {"N1", "N10"}
     for node, (x, y, label) in positions.items():
-        add_node(drawing, x, y, 106 if node not in {"N6", "N9"} else 120, 28, label,
+        width = 90 if node == "N9" else (100 if node == "N6" else (110 if node == "N10" else 94))
+        add_node(drawing, x, y, width, 28, label,
                  decision=node in decisions, terminal=node in terminals)
-    for index, (start, end) in enumerate(IV_EDGES, 1):
-        if (start, end) == ("N5", "N3"):
-            drawing.add(Line(70, 91, 14, 91, strokeColor=MUTED, strokeWidth=0.85))
-            drawing.add(Line(14, 91, 14, 205, strokeColor=MUTED, strokeWidth=0.85))
-            add_arrow(drawing, 14, 205, 70, 191, "E8")
-            continue
-        x1, y1, _ = positions[start]; x2, y2, _ = positions[end]
-        add_arrow(drawing, x1, y1 - 14, x2, y2 + 14, f"E{index}")
+    routes = [
+        ([(250, 296), (250, 284)], "E1", (256, 289)),
+        ([(250, 256), (250, 236)], "E2", (256, 245)),
+        ([(227, 210), (158, 180)], "E3 · T", (180, 199)),
+        ([(250, 208), (250, 75)], "E4 · F", (256, 143)),
+        ([(182, 168), (315, 168), (315, 145)], "E5 · T", (252, 178)),
+        ([(135, 154), (135, 122)], "E6 · F", (141, 136)),
+        ([(182, 108), (315, 108), (315, 131)], "E7 · T", (252, 118)),
+        ([(82, 108), (40, 108), (40, 222), (197, 222)], "E8 · F", (47, 216)),
+        ([(415, 138), (495, 138), (495, 14), (305, 14)], "E9", (484, 76)),
+        ([(297, 61), (303, 61)], "E10 · T", (294, 70)),
+        ([(250, 47), (250, 28)], "E11 · F", (256, 34)),
+        ([(397, 61), (405, 61)], "E12 · T", (398, 70)),
+        ([(350, 47), (350, 38), (250, 38), (250, 47)], "E13 · F", (292, 41)),
+        ([(450, 47), (450, 27), (305, 27), (305, 14)], "E14", (377, 30)),
+    ]
+    for points, label, label_position in routes:
+        add_routed_arrow(drawing, points, label, label_position)
     return drawing
 
 
 def participant_chart() -> Drawing:
-    drawing = Drawing(500, 305)
+    drawing = Drawing(500, 325)
     positions = {
-        "N1": (70, 287, "N1 Entry"), "N2": (70, 257, "N2\nno response?"),
-        "N3": (420, 257, "N3\nNO_RESPONSE"), "N4": (70, 217, "N4\nwithdrawn?"),
-        "N5": (420, 217, "N5\nWITHDRAWN"), "N6": (70, 172, "N6\nnext BUSY?"),
-        "N7": (235, 172, "N7\nbusy.start < end?"), "N8": (365, 150, "N8\nstart < busy.end?"),
-        "N9": (420, 115, "N9\nUNAVAILABLE"), "N10": (70, 102, "N10\nnext AVAILABLE?"),
-        "N11": (235, 102, "N11\navail.start <= start?"), "N12": (365, 80, "N12\nend <= avail.end?"),
-        "N13": (420, 45, "N13\nAVAILABLE"), "N14": (70, 45, "N14\nUNAVAILABLE"),
-        "N15": (245, 10, "N15 Common exit"),
+        "N1": (245, 310, "N1 Entry"), "N2": (245, 272, "N2\nno response?"),
+        "N3": (430, 272, "N3\nNO_RESPONSE"), "N4": (245, 226, "N4\nwithdrawn?"),
+        "N5": (430, 226, "N5\nWITHDRAWN"), "N6": (95, 174, "N6\nnext BUSY?"),
+        "N7": (245, 174, "N7\nbusy.start < end?"), "N8": (355, 150, "N8\nstart < busy.end?"),
+        "N9": (455, 112, "N9\nUNAVAILABLE"), "N10": (95, 96, "N10\nnext AVAILABLE?"),
+        "N11": (245, 96, "N11\navail.start <= start?"), "N12": (355, 72, "N12\nend <= avail.end?"),
+        "N13": (455, 34, "N13\nAVAILABLE"), "N14": (95, 34, "N14\nUNAVAILABLE"),
+        "N15": (275, 8, "N15 Common exit"),
     }
     decisions = {"N2", "N4", "N6", "N7", "N8", "N10", "N11", "N12"}
     terminals = {"N1", "N15"}
     for node, (x, y, label) in positions.items():
-        add_node(drawing, x, y, 108, 27, label, decision=node in decisions, terminal=node in terminals)
-    for index, (start, end) in enumerate(PA_EDGES, 1):
-        x1, y1, _ = positions[start]; x2, y2, _ = positions[end]
-        add_arrow(drawing, x1, y1 - 13, x2, y2 + 13, f"E{index}")
+        if node in {"N9", "N13", "N14"}:
+            width = 82
+        elif node in {"N3", "N5"}:
+            width = 96
+        elif node == "N15":
+            width = 112
+        else:
+            width = 94
+        add_node(drawing, x, y, width, 27, label, decision=node in decisions, terminal=node in terminals)
+    routes = [
+        ([(245, 296), (245, 286)], "E1", (251, 290)),
+        ([(292, 272), (382, 272)], "E2 · T", (327, 278)),
+        ([(245, 258), (245, 240)], "E3 · F", (251, 246)),
+        ([(478, 272), (492, 272), (492, 18), (331, 18)], "E4", (482, 146)),
+        ([(292, 226), (382, 226)], "E5 · T", (327, 232)),
+        ([(222, 214), (118, 185)], "E6 · F", (159, 203)),
+        ([(478, 226), (487, 226), (487, 21), (331, 21)], "E7", (477, 124)),
+        ([(142, 174), (198, 174)], "E8 · T", (158, 181)),
+        ([(95, 160), (95, 110)], "E9 · F", (101, 134)),
+        ([(292, 174), (308, 158)], "E10 · T", (294, 170)),
+        ([(245, 160), (245, 143), (95, 143), (95, 160)], "E11 · F", (160, 147)),
+        ([(402, 144), (424, 126)], "E12 · T", (408, 137)),
+        ([(355, 136), (355, 126), (245, 126), (245, 160)], "E13 · F", (294, 130)),
+        ([(496, 112), (496, 24), (331, 24)], "E14", (483, 67)),
+        ([(142, 96), (198, 96)], "E15 · T", (157, 103)),
+        ([(95, 82), (95, 48)], "E16 · F", (101, 63)),
+        ([(292, 96), (308, 80)], "E17 · T", (294, 92)),
+        ([(245, 82), (245, 65), (95, 65), (95, 82)], "E18 · F", (160, 69)),
+        ([(402, 66), (424, 48)], "E19 · T", (408, 59)),
+        ([(355, 58), (355, 48), (245, 48), (245, 82)], "E20 · F", (294, 52)),
+        ([(496, 34), (496, 14), (331, 14)], "E21", (416, 17)),
+        ([(95, 20), (95, 11), (219, 11)], "E22", (151, 14)),
+    ]
+    for points, label, label_position in routes:
+        add_routed_arrow(drawing, points, label, label_position)
     return drawing
 
 
@@ -357,6 +424,7 @@ def load_srs_text() -> str:
     for fragment in (
         "Version 2.3", "BEST_AVAILABLE_BELOW_THRESHOLD", "NO_TIMESLOT_MEETS_THRESHOLD",
         "requested Minimum-Attendee Threshold", "actual attendance",
+        "15-minute intervals", "approved by Ziru Gao",
     ):
         assert fragment in text, f"SRS v2.3 oracle missing: {fragment}"
     return text
@@ -379,15 +447,15 @@ def source_method(path: Path, class_name: str, method_name: str) -> str:
 
 black_cases = [
     ("BB-DUR-01", "FR-A1.1", "duration 14", "Reject below 15", "ValueError: duration must be 15 to 480 minutes", "test_bb_dur_01_rejects_duration_14_below_minimum"),
-    ("BB-DUR-02", "FR-A1.1", "duration 15", "Accept lower boundary", "OK; ranked; slot duration 15", "test_bb_dur_02_accepts_duration_15_at_minimum"),
-    ("BB-DUR-03", "FR-A1.1", "duration 480", "Accept upper boundary", "OK; ranked; slot duration 480", "test_bb_dur_03_accepts_duration_480_at_maximum"),
+    ("BB-DUR-02", "FR-A1.1", "duration 15", "Accept lower boundary", "OK; ranked options present", "test_bb_dur_02_accepts_duration_15_at_minimum"),
+    ("BB-DUR-03", "FR-A1.1", "duration 480", "Accept upper boundary", "OK; ranked options present", "test_bb_dur_03_accepts_duration_480_at_maximum"),
     ("BB-DUR-04", "FR-A1.1", "duration 481", "Reject above 480", "ValueError: duration must be 15 to 480 minutes", "test_bb_dur_04_rejects_duration_481_above_maximum"),
     ("BB-DUR-05", "FR-A1.1", "duration 16", "Accept valid neighbour", "OK; all generated slots are 16 minutes", "test_bb_dur_05_accepts_duration_16_just_above_minimum"),
     ("BB-DUR-06", "FR-A1.1", "duration 479", "Accept valid neighbour", "OK; all generated slots are 479 minutes", "test_bb_dur_06_accepts_duration_479_just_below_maximum"),
     ("BB-THR-01", "FR-D1", "2 available; requested 2", "Normal result", "OK; all ranked attendee_count=2", "test_bb_thr_01_returns_ok_when_threshold_is_met"),
     ("BB-THR-02", "FR-D1.1 / FR-E1.1", "best 2; requested 3", "Label near match; preserve 3", "BEST_AVAILABLE_BELOW_THRESHOLD; threshold 3; actual 2; warning names both", "test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_missed"),
     ("BB-THR-03", "FR-D1.1", "best 1; requested 2", "No group result; no routing", "NO_TIMESLOT_MEETS_THRESHOLD; 0 combinations; 0 route calls", "test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form"),
-    ("BB-THR-04", "FR-A4", "threshold 0", "Reject non-positive value", "422-boundary ValueError with exact public message", "test_bb_thr_04_rejects_zero_threshold_as_non_positive"),
+    ("BB-THR-04", "FR-A4", "threshold 0", "Reject non-positive value", "ValueError: Minimum-Attendee Threshold must be positive", "test_bb_thr_04_rejects_zero_threshold_as_non_positive"),
     ("BB-THR-05", "FR-A4 / FR-D1", "1 available; requested 1", "Accept explicit positive value", "OK; threshold 1; ranked attendee_count=1", "test_bb_thr_05_accepts_explicit_threshold_one_for_one_available_participant"),
     ("BB-VEN-01", "FR-C3", "badminton; football-only venue", "No supporting venue", "NO_SUPPORTING_VENUES; no ranked options", "test_bb_ven_01_returns_no_supporting_venues_for_wrong_activity_partition"),
     ("BB-VEN-02", "FR-C3 / FR-C4", "mixed supporting/non-supporting", "Filter before shortlist", "Only badminton-hall appears in shortlist and ranking", "test_bb_ven_02_filters_mixed_venues_before_shortlisting_and_ranking"),
@@ -399,31 +467,31 @@ black_cases = [
     ("BB-JRN-02", "FR-D3", "journey 61; cap 60", "Exclude above cap", "No rank; exclusion JOURNEY_LIMIT", "test_bb_jrn_02_excludes_journey_one_minute_above_limit"),
     ("BB-WGT-01", "FR-D9", "weight 0%", "Accept lower boundary", "OK; reported weight 0; ranked", "test_bb_wgt_01_accepts_zero_percent_attendance_weight"),
     ("BB-WGT-02", "FR-D9", "weight 100%", "Accept upper boundary", "OK; reported weight 100; ranked", "test_bb_wgt_02_accepts_100_percent_attendance_weight"),
-    ("BB-WGT-03", "FR-D9", "weight -1%", "Reject below 0", "ValueError: weight must be between 0 and 100", "test_bb_wgt_03_rejects_weight_minus_one_below_minimum"),
-    ("BB-WGT-04", "FR-D9", "weight 101%", "Reject above 100", "ValueError: weight must be between 0 and 100", "test_bb_wgt_04_rejects_weight_101_above_maximum"),
+    ("BB-WGT-03", "FR-D9", "weight -1%", "Reject below 0", "ValueError: attendance weight must be between 0 and 100", "test_bb_wgt_03_rejects_weight_minus_one_below_minimum"),
+    ("BB-WGT-04", "FR-D9", "weight 101%", "Reject above 100", "ValueError: attendance weight must be between 0 and 100", "test_bb_wgt_04_rejects_weight_101_above_maximum"),
     ("BB-WGT-05", "FR-D9.1", "weight 10%", "Accept discrete neighbour", "OK; reported weight 10; ranked", "test_bb_wgt_05_accepts_ten_percent_valid_neighbour"),
     ("BB-WGT-06", "FR-D9.1", "weight 90%", "Accept discrete neighbour", "OK; reported weight 90; ranked", "test_bb_wgt_06_accepts_ninety_percent_valid_neighbour"),
 ]
 
 iv_cases = [
     ("WB-IV-01", "N1-N2-N3(F)-N7(F)-N10", "no intervals", "[]", "[]", "test_wb_iv_01_path_empty_input_returns_empty_ordered_list"),
-    ("WB-IV-02", "N1-N2-N3(T)-N4(T)-N6-N10", "start = range start - 1 min", "422 range detail", "422; exact range detail", "test_wb_iv_02_path_start_one_minute_before_session_is_rejected"),
-    ("WB-IV-03", "N1-N2-N3(T)-N4(F)-N5(T)-N6-N10", "end = range end + 1 min", "422 range detail", "422; exact range detail", "test_wb_iv_03_path_end_one_minute_after_session_is_rejected"),
-    ("WB-IV-04", "N1-N2-N3(T)-N4(F)-N5(F)-N3(F)-N7(F)-N10", "exact range endpoints", "one unchanged interval", "one unchanged interval", "test_wb_iv_04_path_exact_session_endpoints_are_accepted"),
-    ("WB-IV-05", "loop valid intervals; N7(T)-N8(T)-N9-N10", "two intervals overlap 1 min", "422 overlap detail", "422; exact overlap detail", "test_wb_iv_05_path_one_minute_overlap_is_rejected"),
-    ("WB-IV-06", "loop valid intervals; N7(T)-N8(F)-N7(F)-N10", "unsorted touching intervals", "sorted; touching accepted", "literal ascending endpoints", "test_wb_iv_06_path_unsorted_touching_intervals_are_sorted_and_accepted"),
+    ("WB-IV-02", "N1-N2-N3(T)-N4(T)-N6-N10", "start = range start - 1 min", "HTTP 422 range rejection", "HTTP 422: Availability must be inside the session date range", "test_wb_iv_02_path_start_one_minute_before_session_is_rejected"),
+    ("WB-IV-03", "N1-N2-N3(T)-N4(F)-N5(T)-N6-N10", "end = range end + 1 min", "HTTP 422 range rejection", "HTTP 422: Availability must be inside the session date range", "test_wb_iv_03_path_end_one_minute_after_session_is_rejected"),
+    ("WB-IV-04", "N1-N2-N3(T)-N4(F)-N5(F)-N3(F)-N7(F)-N10", "exact range endpoints", "one unchanged interval", "[(10:00–12:00)] SGT", "test_wb_iv_04_path_exact_session_endpoints_are_accepted"),
+    ("WB-IV-05", "N1-N2-N3(T)-N4(F)-N5(F)-N3(T)-N4(F)-N5(F)-N3(F)-N7(T)-N8(T)-N9-N10", "two intervals overlap 1 min", "HTTP 422 overlap rejection", "HTTP 422: Availability intervals cannot overlap", "test_wb_iv_05_path_one_minute_overlap_is_rejected"),
+    ("WB-IV-06", "N1-N2-N3(T)-N4(F)-N5(F)-N3(T)-N4(F)-N5(F)-N3(F)-N7(T)-N8(F)-N7(F)-N10", "unsorted touching intervals", "sorted; touching accepted", "[(10:00–11:00), (11:00–12:00)] SGT", "test_wb_iv_06_path_unsorted_touching_intervals_are_sorted_and_accepted"),
 ]
 
 pa_cases = [
     ("WB-PA-01", "N1-N2(F)-N4(F)-N6(F)-N10(F)-N14-N15", "active; no blocks", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_01_path_active_with_no_blocks_is_unavailable"),
     ("WB-PA-02", "N1-N2(T)-N3-N15", "record missing", "NO_RESPONSE", "NO_RESPONSE", "test_wb_pa_02_path_no_response_returns_no_response"),
     ("WB-PA-03", "N1-N2(F)-N4(T)-N5-N15", "withdrawn; AVAILABLE exists", "WITHDRAWN", "WITHDRAWN", "test_wb_pa_03_path_withdrawn_returns_withdrawn"),
-    ("WB-PA-04", "N6(T)-N7(F)-N6(F)-N10(F)-N14-N15", "BUSY starts at slot end", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_04_path_busy_starting_at_slot_end_does_not_overlap"),
-    ("WB-PA-05", "N6(T)-N7(T)-N8(F)-N6(F)-N10(F)-N14-N15", "BUSY ends at slot start", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_05_path_busy_ending_at_slot_start_does_not_overlap"),
-    ("WB-PA-06", "N6(T)-N7(T)-N8(F)-N6(T)-N7(T)-N8(T)-N9-N15", "earlier nonmatch; later 1-min BUSY overlap", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability"),
-    ("WB-PA-07", "N6(F)-N10(T)-N11(F)-N10(F)-N14-N15", "AVAILABLE starts 1 min late", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_07_path_available_block_starting_one_minute_late_is_unavailable"),
-    ("WB-PA-08", "N6(F)-N10(T)-N11(T)-N12(F)-N10(F)-N14-N15", "AVAILABLE ends 1 min early", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable"),
-    ("WB-PA-09", "N6(F)-N10(T)-N11(T)-N12(F)-N10(T)-N11(T)-N12(T)-N13-N15", "earlier nonmatch; later exact full coverage", "AVAILABLE", "AVAILABLE", "test_wb_pa_09_path_exact_full_available_coverage_is_available"),
+    ("WB-PA-04", "N1-N2(F)-N4(F)-N6(T)-N7(F)-N6(F)-N10(F)-N14-N15", "BUSY starts at slot end", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_04_path_busy_starting_at_slot_end_does_not_overlap"),
+    ("WB-PA-05", "N1-N2(F)-N4(F)-N6(T)-N7(T)-N8(F)-N6(F)-N10(F)-N14-N15", "BUSY ends at slot start", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_05_path_busy_ending_at_slot_start_does_not_overlap"),
+    ("WB-PA-06", "N1-N2(F)-N4(F)-N6(T)-N7(T)-N8(F)-N6(T)-N7(T)-N8(T)-N9-N15", "earlier nonmatch; later 1-min BUSY overlap", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability"),
+    ("WB-PA-07", "N1-N2(F)-N4(F)-N6(F)-N10(T)-N11(F)-N10(F)-N14-N15", "AVAILABLE starts 1 min late", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_07_path_available_block_starting_one_minute_late_is_unavailable"),
+    ("WB-PA-08", "N1-N2(F)-N4(F)-N6(F)-N10(T)-N11(T)-N12(F)-N10(F)-N14-N15", "AVAILABLE ends 1 min early", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable"),
+    ("WB-PA-09", "N1-N2(F)-N4(F)-N6(F)-N10(T)-N11(T)-N12(F)-N10(T)-N11(T)-N12(T)-N13-N15", "earlier nonmatch; later exact full coverage", "AVAILABLE", "AVAILABLE", "test_wb_pa_09_path_exact_full_available_coverage_is_available"),
 ]
 
 pr_cases = [
@@ -434,6 +502,10 @@ pr_cases = [
     ("WB-PR-05", "sports: meets group; no lead", "None", "test_wb_pr_05_path_sports_meets_group_size_without_lead_constraint"),
     ("WB-PR-06", "booking lead fails by 1 hour", "BOOKING_LEAD_TIME", "test_wb_pr_06_path_sports_booking_lead_failure"),
     ("WB-PR-07", "exact booking-lead boundary", "None", "test_wb_pr_07_path_sports_exactly_meets_booking_lead_boundary"),
+]
+
+config_guard_cases = [
+    ("CFG-STEP-01", "successive candidate starts", "15-minute delta", "test_lab4_harness_uses_deployed_fifteen_minute_step"),
 ]
 
 
@@ -460,10 +532,10 @@ def build_story() -> list:
     load_srs_text()
     assessed = black_cases + iv_cases + pa_cases
     assessed_names = {row[-1] for row in assessed}
-    supplemental_names = {row[-1] for row in pr_cases}
+    supplemental_names = {row[-1] for row in pr_cases + config_guard_cases}
     assert len(black_cases) == 25 and len(iv_cases) == 6 and len(pa_cases) == 9
-    assert len(assessed) == 40 and len(pr_cases) == 7
-    assert len(assessed_names) == 40 and len(supplemental_names) == 7
+    assert len(assessed) == 40 and len(pr_cases) == 7 and len(config_guard_cases) == 1
+    assert len(assessed_names) == 40 and len(supplemental_names) == 8
     assert passed == assessed_names | supplemental_names
     assert verify_basis_graph(IV_NODES, IV_EDGES, IV_PATHS) == 6
     assert verify_basis_graph(PA_NODES, PA_EDGES, PA_PATHS) == 9
@@ -483,13 +555,13 @@ def build_story() -> list:
     story += [Spacer(1, 9 * mm), HRFlowable(width="45%", thickness=3, color=GOLD, hAlign="LEFT"), Spacer(1, 10 * mm)]
     cover_data = [
         ["Work product", "Test cases, control-flow graphs and executed results"],
-        ["Prepared by", "Group 1 - Software Testing"],
+        ["Prepared by", "Ziru Gao — Group 1, Software Testing"],
         ["System", "Group Scheduling Application"],
         ["Production baseline", f"feature/production-pilot @ {PILOT_SHA[:7]}"],
         ["SRS oracle", "SRS v2.3 - Pilot near-match recovery"],
         ["Execution date", "7 November 2026 (Asia/Singapore)"],
         ["Assessment result", "40/40 assessed tests passed"],
-        ["Total Lab 4 evidence", "47/47 tests passed (includes 7 supplemental regressions)"],
+        ["Total Lab 4 evidence", "48/48 tests passed (40 assessed + 8 supplemental)"],
     ]
     cover = Table([[p(a, "Small"), p(b, "Small")] for a, b in cover_data], colWidths=[40 * mm, 112 * mm])
     cover.setStyle(TableStyle([
@@ -511,21 +583,29 @@ def build_story() -> list:
         ["3.2.2 two complex methods", "AvailabilityService._validate_intervals and _ParticipantAvailability.status_for", "Met"],
         ["3.2.2 basis-path testing", "Two CFGs; V(G)=6 and V(G)=9; 15 assessed paths", "Met"],
         ["3.2.3 minimise cases", "One representative per partition plus necessary boundary neighbours", "Met"],
-        ["3.2.4 execute/document", "47-case JUnit; every assessment row has expected/actual/result", "Met"],
+        ["3.2.4 execute/document", "48-test JUnit; every assessment row has expected/actual/result", "Met"],
     ]
     story += [report_table(audit, [49 * mm, 104 * mm, 20 * mm], font_size=7.2, leading=9.2)]
     story += [p("1.1 Authoritative baseline", "Subsection")]
-    story += [p(f"The tested product baseline is <b>feature/production-pilot</b> at commit <b>{PILOT_SHA}</b>. SRS v2.3 is the requirements oracle for implemented Pilot behaviour. The assessment does not treat an older SRS contradiction as a reason to change working production behaviour.")]
+    story += [p(f"The tested product baseline is <b>feature/production-pilot</b> at commit <b>{PILOT_SHA}</b>. SRS v2.3 is the approved as-built requirements oracle for implemented Pilot behaviour. The assessment does not treat an older SRS contradiction as a reason to change working production behaviour.")]
     baseline = [
         ["Evidence layer", "Version / result"],
         ["Production code", f"Pilot commit {PILOT_SHA[:7]}"],
         ["Requirements", "SRS v2.3: normal threshold, labelled recovery, explicit no-result"],
         ["Assessment tests", "25 black-box + 6 interval paths + 9 attendance paths = 40"],
-        ["Supplemental regressions", "7 pre-routing feasibility paths"],
-        ["Fresh Lab 4 run", "47 passed; 0 failed; 0 errors"],
+        ["Supplemental guards", "7 pre-routing paths + 1 production-step guard"],
+        ["Fresh Lab 4 run", "48 passed; 0 failed; 0 errors; 0 skips"],
     ]
     story += [report_table(baseline, [48 * mm, 125 * mm], font_size=7.5, leading=9.6)]
-    story += [p("No production method was changed to make this report pass; only SRS documentation, tests, CFGs and this report were added or strengthened.", "Callout"), PageBreak()]
+    story += [
+        p(
+            f'<link href="{PILOT_URL}" color="#2F6650">Product commit {PILOT_SHA[:7]}</link> · '
+            f'<link href="{EVIDENCE_URL}" color="#2F6650">Execution-evidence commit {EVIDENCE_SHA[:7]}</link>',
+            "Small",
+        ),
+        p("No production method was changed to make this report pass; only SRS documentation, tests, CFGs and this report were added or strengthened.", "Callout"),
+        PageBreak(),
+    ]
 
     story += section("Black-box Test Design", "2")
     story += [p("The recommendation engine is treated as a sealed control boundary. Tests construct complete RecommendationRequest values and assert only returned RecommendationResult data or public validation errors. The deterministic router replaces only the external network provider; candidate generation, feasibility, routing adaptation, scoring and ranking remain real production code.")]
@@ -611,14 +691,19 @@ def build_story() -> list:
     pr_table = [["Case", "Regression condition", "Observed", "Result"]]
     pr_table += [[r[0], r[1], r[2], "PASS"] for r in pr_cases]
     story += [report_table(pr_table, [23 * mm, 92 * mm, 42 * mm, 16 * mm], font_size=7.2, leading=9.2)]
-    story += [p("6.1 Why supplemental", "Subsection"), p("The assessed complexity and independent-path claims apply only to _validate_intervals() and status_for(). The seven WB-PR cases are reported separately so their presence cannot inflate the 15 assessed white-box count.")]
+    story += [p("6.1 Production-configuration guard", "Subsection")]
+    guard_table = [["Case", "Observed relationship", "Actual", "Result"]]
+    guard_table += [[r[0], r[1], r[2], "PASS"] for r in config_guard_cases]
+    story += [report_table(guard_table, [26 * mm, 76 * mm, 55 * mm, 16 * mm], font_size=7.2, leading=9.2)]
+    story += [p("6.2 Why supplemental", "Subsection"), p("The assessed complexity and independent-path claims apply only to _validate_intervals() and status_for(). The seven WB-PR cases and one configuration guard are reported separately so they cannot inflate the 15 assessed white-box count.")]
     totals = [
         ["Evidence group", "Count", "Pass", "Assessment role"],
         ["Black-box (BB)", "25", "25", "Assessed"],
         ["Interval paths (WB-IV)", "6", "6", "Assessed method 1"],
         ["Attendance paths (WB-PA)", "9", "9", "Assessed method 2"],
         ["Pre-routing regressions (WB-PR)", "7", "7", "Supplemental"],
-        ["Total", "47", "47", "40 assessed + 7 supplemental"],
+        ["Production-step guard", "1", "1", "Supplemental"],
+        ["Total", "48", "48", "40 assessed + 8 supplemental"],
     ]
     story += [report_table(totals, [64 * mm, 22 * mm, 22 * mm, 65 * mm], font_size=7.4, leading=9.4), PageBreak()]
 
@@ -628,19 +713,20 @@ def build_story() -> list:
         ["Black-box test file", "25 passed", "PASS"],
         ["Assessed white-box file", "15 passed", "PASS"],
         ["Supplemental pre-routing file", "7 passed", "PASS"],
-        ["Fresh Lab 4 JUnit", "47 passed; 0 failed; 0 errors", "PASS"],
-        ["Full backend regression", "311 passed; one third-party deprecation warning", "PASS"],
+        ["Production-step guard", "15-minute consecutive-start delta", "PASS"],
+        ["Fresh Lab 4 JUnit", "48 passed; 0 failed; 0 errors; 0 skips", "PASS"],
+        ["Full backend regression", "312 passed; one third-party deprecation warning", "PASS"],
         ["Frontend Node + UI tests", "21 passed", "PASS"],
         ["Frontend lint", "exit code 0", "PASS"],
         ["Frontend production build", "152 modules transformed; exit code 0", "PASS"],
     ]
     story += [report_table(result_data, [58 * mm, 90 * mm, 25 * mm], font_size=7.4, leading=9.4)]
-    story += [p("7.1 One-to-one evidence mapping", "Subsection"), p("The generator refuses to build unless the JUnit names are exactly the 40 assessment mappings plus the seven supplemental mappings. Duplicate assessment IDs, missing cases, extra cases, failures and errors are structural failures—not prose warnings.")]
+    story += [p("7.1 One-to-one evidence mapping", "Subsection"), p("The generator refuses to build unless the JUnit names are exactly the 40 assessment mappings plus eight supplemental mappings. Duplicate assessment IDs, missing cases, extra cases, failures, errors and skips are structural failures—not prose warnings.")]
     checks = [
         ["Cross-check", "Verified value"],
         ["Assessment IDs", "40 unique: 25 BB + 6 WB-IV + 9 WB-PA"],
-        ["Supplemental IDs", "7 unique WB-PR"],
-        ["JUnit total", "47 unique passing test names"],
+        ["Supplemental IDs", "7 unique WB-PR + 1 production-step guard"],
+        ["JUnit total", "48 unique passing test names"],
         ["Interval graph", "N=10, E=14, full edge coverage, path rank 6"],
         ["Attendance graph", "N=15, E=22, full edge coverage, path rank 9"],
         ["SRS oracle", "v2.3 contains both recovery statuses and requested-versus-actual disclosure"],
@@ -671,17 +757,17 @@ def build_story() -> list:
     story += [p("9.1 Limitations", "Subsection")]
     story += [p("The black-box control tests use a deterministic router at the external provider port so results do not depend on OneMap availability. They validate the application's handling of provider success, absence, malformed success and exceptions, but do not replace deployed integration smoke tests for Google OAuth, OneMap, PostgreSQL or Render. Basis-path coverage proves the selected control-flow paths, not every possible data combination or system-level concurrency condition.")]
     story += [p("9.2 Conclusion", "Subsection")]
-    story += [p("The deliverable meets Lab 4 Manual sections 3.2.1-3.2.4 with current Pilot evidence: 25 black-box equivalence/boundary cases, 15 assessed basis paths for two class methods, and seven clearly separated supplemental regressions. All 47 tests passed, the two CFG calculations and path-vector ranks agree, and the SRS v2.3 near-match behavior is fully traceable.", "Callout")]
+    story += [p("The deliverable meets Lab 4 Manual sections 3.2.1-3.2.4 with current Pilot evidence: 25 black-box equivalence/boundary cases, 15 assessed basis paths for two class methods, and eight clearly separated supplemental guards. All 48 tests passed, the two CFG calculations and path-vector ranks agree, and the SRS v2.3 near-match behavior is fully traceable.", "Callout")]
     story += [p("9.3 Reproduction", "Subsection")]
     commands = (
         "cd backend\n"
-        "python -m pytest tests/lab4 -q --junitxml=../.superpowers/sdd/2026-11-07-pilot-aligned-srs-lab4-report/lab4-junit.xml\n"
+        "python -m pytest tests/lab4 -q --junitxml=../docs/lab4/evidence/lab4-junit.xml\n"
         "cd ..\n"
         "python docs/lab4/generate_report.py\n"
         "python docs/srs/update_v2_3.py 'docs/SRS Group Scheduling Application v2.3.docx'"
     )
     story += [Preformatted(commands, styles["CodeBlock"])]
-    story += [p("Artifacts: docs/SRS Group Scheduling Application v2.3.docx/.pdf and docs/lab4/Lab4_Software_Testing_Report.pdf. Test and CFG sources are committed on branch lab4/software-testing-report.", "Small")]
+    story += [p(f"Artifacts: docs/SRS Group Scheduling Application v2.3.docx/.pdf and docs/lab4/Lab4_Software_Testing_Report.pdf. Durable logs and JUnit are in docs/lab4/evidence at commit {EVIDENCE_SHA[:7]}.", "Small")]
     story += [Spacer(1, 4 * mm), p("Reference: SC2006 Lab 4 Manual, sections 3.2.1-3.2.4.", "Small")]
     return story
 
@@ -696,13 +782,13 @@ def main() -> None:
     report_ids = {row[0] for row in black_cases + iv_cases + pa_cases}
     assert len(report_ids) == 40
     assert len(black_cases) == 25 and len(iv_cases) + len(pa_cases) == 15 and len(pr_cases) == 7
-    assert len(load_junit()) == 47
+    assert len(config_guard_cases) == 1 and len(load_junit()) == 48
     for token in (
-        "40/40 assessed tests passed", "47/47 tests passed", "25 black-box",
+        "40/40 assessed tests passed", "48/48 tests passed", "25 black-box",
         "14 - 10 + 2 = 6", "22 - 15 + 2 = 9",
         "3.2.1", "3.2.2", "3.2.3", "3.2.4",
         "BEST_AVAILABLE_BELOW_THRESHOLD", "NO_TIMESLOT_MEETS_THRESHOLD",
-        "requested 3", "actual 2", PILOT_SHA[:7],
+        "requested 3", "actual 2", PILOT_SHA[:7], EVIDENCE_SHA[:7],
         "WB-IV-06", "WB-PA-09", "WB-PR-07",
     ):
         assert token in extracted, f"missing report token: {token}"
@@ -712,7 +798,7 @@ def main() -> None:
         "authorization: bearer", "client_secret=", "api_key=",
     ):
         assert forbidden not in lowered, f"forbidden secret/placeholder marker: {forbidden}"
-    print(f"created {OUTPUT} ({page_count} pages; 40 assessed + 7 supplemental = 47 passed)")
+    print(f"created {OUTPUT} ({page_count} pages; 40 assessed + 8 supplemental = 48 passed)")
 
 
 if __name__ == "__main__":
