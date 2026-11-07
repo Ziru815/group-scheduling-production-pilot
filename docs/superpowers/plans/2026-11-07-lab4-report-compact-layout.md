@@ -148,4 +148,3 @@
   Compare the remote branch tree SHA with local `HEAD^{tree}`.
 
   Expected: exact match.
-

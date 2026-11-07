@@ -50,4 +50,3 @@ Reformat the existing Lab 4 Software Testing Report so it looks like a polished 
 - Both complexity formulas and path counts remain correct.
 - All pages render successfully and pass full-page visual inspection.
 - No meaningful page has a large avoidable blank region caused by manual pagination.
-
