@@ -247,10 +247,10 @@ PA_PATHS = [
     ["N1", "N2", "N4", "N5", "N15"],
     ["N1", "N2", "N4", "N6", "N7", "N6", "N10", "N14", "N15"],
     ["N1", "N2", "N4", "N6", "N7", "N8", "N6", "N10", "N14", "N15"],
-    ["N1", "N2", "N4", "N6", "N7", "N8", "N9", "N15"],
+    ["N1", "N2", "N4", "N6", "N7", "N8", "N6", "N7", "N8", "N9", "N15"],
     ["N1", "N2", "N4", "N6", "N10", "N11", "N10", "N14", "N15"],
     ["N1", "N2", "N4", "N6", "N10", "N11", "N12", "N10", "N14", "N15"],
-    ["N1", "N2", "N4", "N6", "N10", "N11", "N12", "N13", "N15"],
+    ["N1", "N2", "N4", "N6", "N10", "N11", "N12", "N10", "N11", "N12", "N13", "N15"],
 ]
 
 
@@ -341,7 +341,10 @@ def participant_chart() -> Drawing:
 def load_junit() -> set[str]:
     root = ET.parse(JUNIT).getroot()
     assert not root.findall(".//failure") and not root.findall(".//error")
-    return {case.attrib["name"] for case in root.findall(".//testcase")}
+    assert not root.findall(".//skipped"), "JUnit contains skipped test evidence"
+    names = [case.attrib["name"] for case in root.findall(".//testcase")]
+    assert len(names) == len(set(names)), "JUnit contains duplicate testcase names"
+    return set(names)
 
 
 def load_srs_text() -> str:
@@ -417,10 +420,10 @@ pa_cases = [
     ("WB-PA-03", "N1-N2(F)-N4(T)-N5-N15", "withdrawn; AVAILABLE exists", "WITHDRAWN", "WITHDRAWN", "test_wb_pa_03_path_withdrawn_returns_withdrawn"),
     ("WB-PA-04", "N6(T)-N7(F)-N6(F)-N10(F)-N14-N15", "BUSY starts at slot end", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_04_path_busy_starting_at_slot_end_does_not_overlap"),
     ("WB-PA-05", "N6(T)-N7(T)-N8(F)-N6(F)-N10(F)-N14-N15", "BUSY ends at slot start", "UNAVAILABLE; no overlap", "UNAVAILABLE", "test_wb_pa_05_path_busy_ending_at_slot_start_does_not_overlap"),
-    ("WB-PA-06", "N6(T)-N7(T)-N8(T)-N9-N15", "1-min BUSY overlap + full AVAILABLE", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability"),
+    ("WB-PA-06", "N6(T)-N7(T)-N8(F)-N6(T)-N7(T)-N8(T)-N9-N15", "earlier nonmatch; later 1-min BUSY overlap", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability"),
     ("WB-PA-07", "N6(F)-N10(T)-N11(F)-N10(F)-N14-N15", "AVAILABLE starts 1 min late", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_07_path_available_block_starting_one_minute_late_is_unavailable"),
     ("WB-PA-08", "N6(F)-N10(T)-N11(T)-N12(F)-N10(F)-N14-N15", "AVAILABLE ends 1 min early", "UNAVAILABLE", "UNAVAILABLE", "test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable"),
-    ("WB-PA-09", "N6(F)-N10(T)-N11(T)-N12(T)-N13-N15", "exact full AVAILABLE coverage", "AVAILABLE", "AVAILABLE", "test_wb_pa_09_path_exact_full_available_coverage_is_available"),
+    ("WB-PA-09", "N6(F)-N10(T)-N11(T)-N12(F)-N10(T)-N11(T)-N12(T)-N13-N15", "earlier nonmatch; later exact full coverage", "AVAILABLE", "AVAILABLE", "test_wb_pa_09_path_exact_full_available_coverage_is_available"),
 ]
 
 pr_cases = [
@@ -464,6 +467,14 @@ def build_story() -> list:
     assert passed == assessed_names | supplemental_names
     assert verify_basis_graph(IV_NODES, IV_EDGES, IV_PATHS) == 6
     assert verify_basis_graph(PA_NODES, PA_EDGES, PA_PATHS) == 9
+    assert any(
+        ["N8", "N6", "N7", "N8", "N9"] == path[index:index + 5]
+        for path in PA_PATHS for index in range(len(path) - 4)
+    )
+    assert any(
+        ["N12", "N10", "N11", "N12", "N13"] == path[index:index + 5]
+        for path in PA_PATHS for index in range(len(path) - 4)
+    )
 
     story: list = []
     story += [Spacer(1, 22 * mm), p("SC2006 LAB 4", "Subtitle"), Spacer(1, 4 * mm)]
@@ -592,7 +603,7 @@ def build_story() -> list:
     pa_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
     pa_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pa_cases]
     story += [report_table(pa_table, [17 * mm, 58 * mm, 35 * mm, 25 * mm, 25 * mm, 13 * mm], font_size=6.15, leading=7.7)]
-    story += [p("The nine paths cover all 22 directed edges and have rational rank 9. PA-04 and PA-05 exercise opposite short-circuit boundary outcomes; PA-06 proves BUSY precedence; PA-07 and PA-08 isolate the two full-containment comparisons; PA-09 reaches the only AVAILABLE return.", "Callout")]
+    story += [p("The nine paths cover all 22 directed edges and have rational rank 9. PA-04 and PA-05 exercise opposite short-circuit boundary outcomes; PA-06 skips an earlier nonmatching BUSY block before a later overlap; PA-07 and PA-08 isolate the two full-containment comparisons; PA-09 skips an earlier nonmatching AVAILABLE block before a later full-cover match.", "Callout")]
     story += [PageBreak()]
 
     story += section("Supplemental Pre-routing Regressions", "6")

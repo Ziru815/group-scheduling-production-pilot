@@ -43,11 +43,34 @@ def assert_v2_3(document: Document) -> None:
     for fragment in required_fragments:
         assert fragment in text, f"missing required v2.3 content: {fragment}"
 
+    stale_fragments = (
+        "continues with steps 4 to 6",
+        "default value is still to be confirmed",
+        "interval between possible start times is still to be confirmed",
+        "its size still needs clarification (TBD-2)",
+        "threshold is exceeded; its value is still to be confirmed (TBD-1)",
+        "[N: see Appendix C, TBD-2]",
+        "[Threshold value: see Appendix C, TBD-1]",
+    )
+    for fragment in stale_fragments:
+        assert fragment not in text, f"stale v2.2 content remains: {fragment}"
+
     configuration = {row.cells[0].text: row.cells[2].text for row in document.tables[42].rows[1:]}
     assert configuration["MaximumJourneyTimeMinutes"] == "60"
     assert configuration["DefaultMinimumAttendeeThreshold"] == "2"
     assert configuration["VenueShortlistN"] == "10"
     assert configuration["CandidateTimeslotStepMinutes"] == "30"
+
+    combination = {
+        row.cells[0].text: [cell.text for cell in row.cells]
+        for row in document.tables[38].rows[1:]
+    }
+    feasibility = combination["FeasibilityStatus"]
+    assert feasibility[3] == "FEASIBLE, EXCLUDED, or DATA_UNAVAILABLE."
+    assert "BEST_AVAILABLE_BELOW_THRESHOLD" not in " ".join(feasibility)
+
+    derived = {row.cells[0].text for row in document.tables[43].rows[1:]}
+    assert "RecommendationRunStatus" in derived
 
 
 def visible_text(element: etree._Element) -> str:
@@ -145,7 +168,7 @@ def update_document_xml(source: bytes) -> bytes:
     replace_paragraph_start(
         root,
         "Alternative flow (at step 2): if no time slot meets the attendance requirement",
-        "Alternative flow (at step 2): if no Candidate Timeslot meets the requested Minimum-Attendee Threshold, the System preserves that requested threshold and checks the highest actual attendance. If the best attendance is at least the system default minimum of 2, the System retains only the best-attended Timeslots, marks the recommendation result BEST_AVAILABLE_BELOW_THRESHOLD, and continues with steps 4 to 6 while warning that actual attendance is below the requested Minimum-Attendee Threshold. If the best attendance is below 2, the System returns NO_TIMESLOT_MEETS_THRESHOLD, performs no routing, and produces no candidate Combination. If at least one Timeslot meets the requested threshold, normal processing continues. Postcondition: a normal or clearly labelled recovered candidate set exists, or a no-result status explains why no set was produced.",
+        "Alternative flow (at step 2): if no Candidate Timeslot meets the requested Minimum-Attendee Threshold, the System preserves that requested threshold and checks the highest actual attendance. If the best attendance is at least the system default minimum of 2, the System retains only the best-attended Timeslots, marks the recommendation result BEST_AVAILABLE_BELOW_THRESHOLD, and continues with steps 3 to 6 while warning that actual attendance is below the requested Minimum-Attendee Threshold. If the best attendance is below 2, the System returns NO_TIMESLOT_MEETS_THRESHOLD, performs no routing, and produces no candidate Combination. If at least one Timeslot meets the requested threshold, normal processing continues. Postcondition: a normal or clearly labelled recovered candidate set exists, or a no-result status explains why no set was produced.",
     )
     replace_paragraph_start(
         root,
@@ -164,6 +187,12 @@ def update_document_xml(source: bytes) -> bytes:
     )
 
     fr_d = tables[13]
+    fr_c = tables[12]
+    fr_c4 = find_row(fr_c, "FR-C4")
+    fr_c4_values = row_values(fr_c4)
+    fr_c4_values[3] = "Filtered venue list (FR-C3); Participant coordinates (FR-B3); N = 10 (TBD-2 resolved)."
+    set_row(fr_c4, fr_c4_values)
+
     set_row(
         find_row(fr_d, "FR-D1"),
         [
@@ -185,6 +214,10 @@ def update_document_xml(source: bytes) -> bytes:
             "Recovered best-attended Timeslots with an explicit status, or a no-result status with no routing candidates.",
         ],
     )
+    fr_d3 = find_row(fr_d, "FR-D3")
+    fr_d3_values = row_values(fr_d3)
+    fr_d3_values[3] = "Travel Estimates (FR-D2); maximum individual journey time = 60 minutes (TBD-1 resolved)."
+    set_row(fr_d3, fr_d3_values)
 
     fr_e = tables[14]
     set_row(
@@ -225,10 +258,39 @@ def update_document_xml(source: bytes) -> bytes:
         ],
     )
     set_row(
+        find_row(glossary, "Venue Shortlist"),
+        [
+            "Venue Shortlist",
+            "The nearest eligible Venues retained for one Session. It is calculated each time the Organiser runs Generate Recommendations; the production Pilot retains 10 Venues.",
+        ],
+    )
+    set_row(
+        find_row(glossary, "Maximum Journey Time Threshold"),
+        [
+            "Maximum Journey Time Threshold",
+            "The longest journey allowed for an attending Participant. The production Pilot limit is 60 minutes; a Combination is excluded when that limit is exceeded.",
+        ],
+    )
+    set_row(
         find_row(glossary, "Combination Status"),
         [
             "Combination Status",
-            "Shows whether a Timeslot-Venue Combination is a normal candidate, a BEST_AVAILABLE_BELOW_THRESHOLD recovered candidate, excluded, unavailable, or confirmed. NO_TIMESLOT_MEETS_THRESHOLD is a recommendation-run status and produces no Combination.",
+            "Shows whether a Timeslot-Venue Combination is still a candidate, has been excluded, or has become the confirmed choice.",
+        ],
+    )
+    set_row(
+        find_row(glossary, "Feasibility Status"),
+        [
+            "Feasibility Status",
+            "Shows whether a Combination can be selected after feasibility checks. The permitted values are FEASIBLE, EXCLUDED, and DATA_UNAVAILABLE; Recommendation Run Status is separate.",
+        ],
+    )
+    insert_cloned_row_after(
+        glossary,
+        "Combination Status",
+        [
+            "Recommendation Run Status",
+            "Labels the recommendation run as normal, BEST_AVAILABLE_BELOW_THRESHOLD, or NO_TIMESLOT_MEETS_THRESHOLD. It is separate from each Combination's Feasibility Status.",
         ],
     )
 
@@ -260,9 +322,9 @@ def update_document_xml(source: bytes) -> bytes:
         [
             "FeasibilityStatus",
             "Enum",
-            "Whether the pair can be selected and whether it came from normal or recovered candidate generation.",
-            "FEASIBLE, BEST_AVAILABLE_BELOW_THRESHOLD, EXCLUDED, or DATA_UNAVAILABLE. NO_TIMESLOT_MEETS_THRESHOLD creates no pair.",
-            "FR-D1 to D5, FR-E1.1",
+            "Whether the Timeslot-Venue pair can be selected after feasibility checks.",
+            "FEASIBLE, EXCLUDED, or DATA_UNAVAILABLE.",
+            "FR-D1 to D5, NFR-3",
         ],
     )
 
@@ -283,11 +345,47 @@ def update_document_xml(source: bytes) -> bytes:
     set_row(
         find_row(derived, "FeasibilityStatus"),
         [
-            "FeasibilityStatus",
-            "Uses normal threshold filtering when possible; otherwise returns BEST_AVAILABLE_BELOW_THRESHOLD for the best-attended Timeslots when actual attendance is at least 2, or NO_TIMESLOT_MEETS_THRESHOLD with no candidates when it is below 2. Remaining journey, group-size and booking rules still apply.",
-            "FR-D1 to D5, FR-E1.1",
+            "RecommendationRunStatus",
+            "NORMAL when requested-threshold candidates exist; BEST_AVAILABLE_BELOW_THRESHOLD for the best-attended Timeslots when actual attendance is at least 2; or NO_TIMESLOT_MEETS_THRESHOLD with no candidates when it is below 2. Each produced Combination still receives its separate FeasibilityStatus.",
+            "FR-D1, FR-D1.1, FR-E1.1",
         ],
     )
+
+    conceptual = tables[45]
+    conceptual_rows = {
+        "Minimum Attendee Threshold": [
+            "Minimum Attendee Threshold",
+            "The smallest number of available Participants requested by the Organiser for a normal recommendation. The production Pilot default is 2, and the requested value is preserved during recovery.",
+            "Minimum Participant count; default value = 2.",
+            "Each Session has one Minimum Attendee Threshold. Normal recommendations meet the requested value; recovery is labelled separately when only the system minimum can attend.",
+        ],
+        "Candidate Timeslot": [
+            "Candidate Timeslot",
+            "A possible Session time generated inside the date range using the Session Duration. Successive possible starts use 30-minute intervals.",
+            "Start date and time; end date and time; attendance count; step = 30 minutes.",
+            "A Session can generate multiple Candidate Timeslots. Each timeslot can have multiple Timeslot Attendance records and can be paired with multiple Venues through Combinations.",
+        ],
+        "Venue Shortlist": [
+            "Venue Shortlist",
+            "The nearest eligible Venues retained for one Session. It is calculated each time the Organiser runs Generate Recommendations; its production Pilot size is 10.",
+            "Eligible Venues; shortlist size = 10; calculation state.",
+            "A Session may have one Venue Shortlist containing up to 10 Venues. It is recalculated each time the Organiser runs Generate Recommendations.",
+        ],
+        "Maximum Journey Time Threshold": [
+            "Maximum Journey Time Threshold",
+            "The longest journey allowed for an attending Participant. The production Pilot value is 60 minutes, and a Combination is excluded when that value is exceeded.",
+            "Maximum duration; time unit; value = 60 minutes.",
+            "The System applies the 60-minute Maximum Journey Time Threshold to Travel Estimates for each Combination.",
+        ],
+        "Feasibility Status": [
+            "Feasibility Status",
+            "Shows whether a Combination is feasible, excluded, or missing required external data. Recommendation-run recovery labels are represented separately.",
+            "FEASIBLE; EXCLUDED; DATA_UNAVAILABLE.",
+            "Each Combination has one Feasibility Status. Data unavailable is different from normal exclusion and from Recommendation Run Status.",
+        ],
+    }
+    for key, values in conceptual_rows.items():
+        set_row(find_row(conceptual, key), values)
 
     tbd = tables[44]
     set_row(

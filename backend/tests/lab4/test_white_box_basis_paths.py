@@ -164,7 +164,10 @@ def test_wb_pa_06_path_one_minute_busy_overlap_overrides_full_availability() -> 
     availability = _ParticipantAvailability(
         _participant(
             available=((SLOT_START, SLOT_END),),
-            busy=((SLOT_END - timedelta(minutes=1), SLOT_END + timedelta(minutes=30)),),
+            busy=(
+                (SLOT_START - timedelta(minutes=30), SLOT_START),
+                (SLOT_END - timedelta(minutes=1), SLOT_END + timedelta(minutes=30)),
+            ),
         )
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
@@ -186,6 +189,11 @@ def test_wb_pa_08_path_available_block_ending_one_minute_early_is_unavailable() 
 
 def test_wb_pa_09_path_exact_full_available_coverage_is_available() -> None:
     availability = _ParticipantAvailability(
-        _participant(available=((SLOT_START, SLOT_END),))
+        _participant(
+            available=(
+                (SLOT_START - timedelta(hours=1), SLOT_START - timedelta(minutes=30)),
+                (SLOT_START, SLOT_END),
+            )
+        )
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.AVAILABLE

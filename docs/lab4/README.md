@@ -25,6 +25,8 @@ The fresh Lab 4 result is **47 passed**: 40 assessed cases plus seven supplement
 - `docs/lab4/cfg_validate_intervals.dot` — interval-validation CFG.
 - `docs/lab4/cfg_participant_availability.dot` — participant-attendance CFG.
 - `docs/lab4/generate_report.py` — deterministic ReportLab generator with JUnit, graph-rank, SRS and PDF structural checks.
+- `docs/lab4/test_generate_report.py` — adversarial checks for skipped/duplicate JUnit cases and later-item CFG evidence.
+- `docs/srs/test_update_v2_3.py` — SRS status-separation, constant-resolution and recovery-flow regressions.
 - `docs/lab4/Lab4_Software_Testing_Report.pdf` — 12–15 page submission report.
 - `docs/srs/update_v2_3.py` — deterministic SRS v2.3 generator/verifier.
 - `docs/SRS Group Scheduling Application v2.3.docx` and `.pdf` — Pilot-aligned SRS artifacts.
@@ -84,6 +86,10 @@ shasum -a 256 docs/lab4/Lab4_Software_Testing_Report.pdf
 ## 4. Reproduce all verification
 
 ```bash
+python -m unittest \
+  docs.srs.test_update_v2_3 \
+  docs.lab4.test_generate_report -v
+
 cd backend
 python -m pytest -q
 
@@ -95,6 +101,7 @@ npm run build
 
 Verified baseline results:
 
+- document/report guard regressions: 6 passed;
 - backend: 311 passed; one third-party deprecation warning;
 - frontend Node/UI tests: 21 passed;
 - lint: passed;
