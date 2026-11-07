@@ -103,9 +103,9 @@ def _participant(
     )
 
 
-def _venue(*, activity: str = "badminton") -> VenueInput:
+def _venue(*, venue_id: str = "venue-1", activity: str = "badminton") -> VenueInput:
     return VenueInput(
-        venue_id="venue-1",
+        venue_id=venue_id,
         name="Public Sports Hall",
         category=VenueCategory.PARK,
         location=TOA_PAYOH,
@@ -157,6 +157,26 @@ def test_bb_dur_04_rejects_duration_481_above_maximum() -> None:
         _generate(_request(session=_session(duration=481)))
 
 
+def test_bb_dur_05_accepts_duration_16_just_above_minimum() -> None:
+    result = _generate(_request(session=_session(duration=16)))
+    assert result.status is RunStatus.OK
+    assert result.ranked
+    assert {
+        int((timeslot.end - timeslot.start).total_seconds() // 60)
+        for timeslot in result.timeslots
+    } == {16}
+
+
+def test_bb_dur_06_accepts_duration_479_just_below_maximum() -> None:
+    result = _generate(_request(session=_session(duration=479)))
+    assert result.status is RunStatus.OK
+    assert result.ranked
+    assert {
+        int((timeslot.end - timeslot.start).total_seconds() // 60)
+        for timeslot in result.timeslots
+    } == {479}
+
+
 def test_bb_thr_01_returns_ok_when_threshold_is_met() -> None:
     result = _generate(_request(session=_session(threshold=2)))
     assert result.status is RunStatus.OK
@@ -172,9 +192,13 @@ def test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_m
     )
     result = _generate(_request(session=_session(threshold=3), participants=participants))
     assert result.status is RunStatus.BEST_AVAILABLE_BELOW_THRESHOLD
+    assert result.minimum_attendee_threshold == 3
     assert result.ranked
     assert all(option.attendee_count == 2 for option in result.ranked)
-    assert any("requested minimum of 3" in warning for warning in result.warnings)
+    assert any(
+        "requested minimum of 3" in warning and "options for 2" in warning
+        for warning in result.warnings
+    )
 
 
 def test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form() -> None:
@@ -193,6 +217,24 @@ def test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form() -> No
     assert router.calls == 0
 
 
+def test_bb_thr_04_rejects_zero_threshold_as_non_positive() -> None:
+    with pytest.raises(ValueError, match="^Minimum-Attendee Threshold must be positive$"):
+        _generate(_request(session=_session(threshold=0)))
+
+
+def test_bb_thr_05_accepts_explicit_threshold_one_for_one_available_participant() -> None:
+    result = _generate(
+        _request(
+            session=_session(threshold=1),
+            participants=(_participant("p1", (0, 10)),),
+        )
+    )
+    assert result.status is RunStatus.OK
+    assert result.minimum_attendee_threshold == 1
+    assert result.ranked
+    assert all(option.attendee_count == 1 for option in result.ranked)
+
+
 def test_bb_ven_01_returns_no_supporting_venues_for_wrong_activity_partition() -> None:
     result = _generate(
         _request(
@@ -202,6 +244,21 @@ def test_bb_ven_01_returns_no_supporting_venues_for_wrong_activity_partition() -
     )
     assert result.status is RunStatus.NO_SUPPORTING_VENUES
     assert result.ranked == []
+
+
+def test_bb_ven_02_filters_mixed_venues_before_shortlisting_and_ranking() -> None:
+    supporting = _venue(venue_id="badminton-hall", activity="badminton")
+    non_supporting = _venue(venue_id="football-pitch", activity="football")
+    result = _generate(
+        _request(
+            session=_session(activity="badminton"),
+            venues=(non_supporting, supporting),
+        )
+    )
+    assert result.status is RunStatus.OK
+    assert [entry.venue.venue_id for entry in result.shortlist] == ["badminton-hall"]
+    assert result.ranked
+    assert {option.venue.venue_id for option in result.ranked} == {"badminton-hall"}
 
 
 def test_bb_loc_01_returns_no_valid_locations_when_centroid_cannot_be_computed() -> None:
@@ -234,6 +291,22 @@ def test_bb_rte_02_contains_provider_exception_as_error_status() -> None:
     assert all(option.feasibility is FeasibilityStatus.DATA_UNAVAILABLE for option in result.combinations)
     assert all(
         estimate.status is RoutingStatus.ERROR
+        for option in result.combinations
+        for estimate in option.travel
+    )
+
+
+def test_bb_rte_03_treats_available_route_without_duration_as_unusable() -> None:
+    result = _generate(
+        _request(),
+        FixedRouter(minutes=None, status=RoutingStatus.AVAILABLE),
+    )
+    assert result.status is RunStatus.OK
+    assert result.combinations
+    assert result.ranked == []
+    assert all(option.feasibility is FeasibilityStatus.DATA_UNAVAILABLE for option in result.combinations)
+    assert all(
+        estimate.status is RoutingStatus.ERROR and estimate.minutes is None
         for option in result.combinations
         for estimate in option.travel
     )
@@ -281,3 +354,17 @@ def test_bb_wgt_03_rejects_weight_minus_one_below_minimum() -> None:
 def test_bb_wgt_04_rejects_weight_101_above_maximum() -> None:
     with pytest.raises(ValueError, match="attendance weight must be between 0 and 100"):
         _generate(_request(session=_session(weight=101)))
+
+
+def test_bb_wgt_05_accepts_ten_percent_valid_neighbour() -> None:
+    result = _generate(_request(session=_session(weight=10)))
+    assert result.status is RunStatus.OK
+    assert result.attendance_weight_percent == 10
+    assert result.ranked
+
+
+def test_bb_wgt_06_accepts_ninety_percent_valid_neighbour() -> None:
+    result = _generate(_request(session=_session(weight=90)))
+    assert result.status is RunStatus.OK
+    assert result.attendance_weight_percent == 90
+    assert result.ranked
