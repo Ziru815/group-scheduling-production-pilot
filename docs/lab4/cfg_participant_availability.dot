@@ -1,0 +1,33 @@
+digraph participant_availability_status {
+  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650", fontname="Helvetica", fontsize=10];
+  edge [color="#5B655E", fontname="Helvetica", fontsize=9];
+
+  N1 [label="N1  Entry\nread participant", shape=oval, fillcolor="#DCEBDF"];
+  N2 [label="N2  response record missing?", shape=diamond, fillcolor="#FFF1CC"];
+  N3 [label="N3  return NO_RESPONSE", fillcolor="#F7D8D5"];
+  N4 [label="N4  record withdrawn?", shape=diamond, fillcolor="#FFF1CC"];
+  N5 [label="N5  return WITHDRAWN", fillcolor="#F7D8D5"];
+  N6 [label="N6  any BUSY overlap?", shape=diamond, fillcolor="#FFF1CC"];
+  N7 [label="N7  return UNAVAILABLE", fillcolor="#F7D8D5"];
+  N8 [label="N8  slot fully inside AVAILABLE block?", shape=diamond, fillcolor="#FFF1CC"];
+  N9 [label="N9  return AVAILABLE", fillcolor="#DCEBDF"];
+  N10 [label="N10  return UNAVAILABLE", fillcolor="#F7D8D5"];
+  N11 [label="N11  Exit", shape=oval, fillcolor="#DCEBDF"];
+
+  N1 -> N2;
+  N2 -> N3 [label="T"];
+  N2 -> N4 [label="F"];
+  N3 -> N11;
+  N4 -> N5 [label="T"];
+  N4 -> N6 [label="F"];
+  N5 -> N11;
+  N6 -> N7 [label="T"];
+  N6 -> N8 [label="F"];
+  N7 -> N11;
+  N8 -> N9 [label="T"];
+  N8 -> N10 [label="F"];
+  N9 -> N11;
+  N10 -> N11;
+}
+

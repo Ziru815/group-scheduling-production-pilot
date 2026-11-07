@@ -1,0 +1,39 @@
+digraph pre_routing_exclusion {
+  graph [rankdir=TB, bgcolor="transparent", pad=0.25, nodesep=0.32, ranksep=0.42];
+  node [shape=box, style="rounded,filled", fillcolor="#F7F4EC", color="#2F6650", fontname="Helvetica", fontsize=10];
+  edge [color="#5B655E", fontname="Helvetica", fontsize=9];
+
+  N1 [label="N1  Entry\nread attendee count and venue", shape=oval, fillcolor="#DCEBDF"];
+  N2 [label="N2  count < session threshold?", shape=diamond, fillcolor="#FFF1CC"];
+  N3 [label="N3  return BELOW_THRESHOLD", fillcolor="#F7D8D5"];
+  N4 [label="N4  sports facility?", shape=diamond, fillcolor="#FFF1CC"];
+  N5 [label="N5  minimum group size specified?", shape=diamond, fillcolor="#FFF1CC"];
+  N6 [label="N6  count < venue minimum?", shape=diamond, fillcolor="#FFF1CC"];
+  N7 [label="N7  return GROUP_SIZE", fillcolor="#F7D8D5"];
+  N8 [label="N8  booking lead time specified?", shape=diamond, fillcolor="#FFF1CC"];
+  N9 [label="N9  calculate earliest bookable time"];
+  N10 [label="N10  slot starts before earliest?", shape=diamond, fillcolor="#FFF1CC"];
+  N11 [label="N11  return BOOKING_LEAD_TIME", fillcolor="#F7D8D5"];
+  N12 [label="N12  return None", fillcolor="#DCEBDF"];
+  N13 [label="N13  Exit", shape=oval, fillcolor="#DCEBDF"];
+
+  N1 -> N2;
+  N2 -> N3 [label="T"];
+  N2 -> N4 [label="F"];
+  N3 -> N13;
+  N4 -> N5 [label="T"];
+  N4 -> N12 [label="F"];
+  N5 -> N6 [label="T"];
+  N5 -> N8 [label="F"];
+  N6 -> N7 [label="T"];
+  N6 -> N8 [label="F"];
+  N7 -> N13;
+  N8 -> N9 [label="T"];
+  N8 -> N12 [label="F"];
+  N9 -> N10;
+  N10 -> N11 [label="T"];
+  N10 -> N12 [label="F"];
+  N11 -> N13;
+  N12 -> N13;
+}
+
