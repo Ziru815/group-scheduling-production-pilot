@@ -55,6 +55,23 @@ PALE_RED = colors.HexColor("#F7D8D5")
 WHITE = colors.white
 GRID = colors.HexColor("#C7CEC9")
 
+BLACK_FIXTURE_TEXT = (
+    "<b>Shared black-box fixture.</b> Unless a row overrides it: Session range "
+    "7 November 2026, 08:00–18:00 SGT; two active Participants are available for the "
+    "full range from Bishan; one badminton Venue is at Toa Payoh; the deterministic "
+    "router observes 20 minutes; evaluation time is 1 November 2026, 10:00 SGT."
+)
+INTERVAL_FIXTURE_TEXT = (
+    "<b>Shared interval fixture.</b> Session range: 14 November 2026, 10:00–12:00 SGT. "
+    "IV-05 submits 10:00–11:01 then 11:00–12:00; IV-06 submits the touching intervals "
+    "11:00–12:00 then 10:00–11:00 so the returned order is directly observable."
+)
+PARTICIPANT_FIXTURE_TEXT = (
+    "<b>Shared attendance fixture.</b> Evaluated slot: 14 November 2026, 10:00–12:00 SGT. "
+    "PA-06 combines full-slot AVAILABLE with 09:30–10:00 and 11:59–12:30 BUSY blocks; "
+    "PA-09 supplies 09:00–09:30 AVAILABLE before the exact 10:00–12:00 cover."
+)
+
 
 class InvariantCanvas(pdfcanvas.Canvas):
     def __init__(self, *args, **kwargs):
@@ -380,24 +397,24 @@ def participant_chart() -> Drawing:
         ([(245, 296), (245, 286)], "E1", (251, 290)),
         ([(292, 272), (382, 272)], "E2 · T", (327, 278)),
         ([(245, 258), (245, 240)], "E3 · F", (251, 246)),
-        ([(478, 272), (492, 272), (492, 18), (331, 18)], "E4", (482, 146)),
+        ([(478, 272), (499, 272), (499, 31), (331, 31), (331, 21)], "E4", (486, 146)),
         ([(292, 226), (382, 226)], "E5 · T", (327, 232)),
         ([(222, 214), (118, 185)], "E6 · F", (159, 203)),
-        ([(478, 226), (487, 226), (487, 21), (331, 21)], "E7", (477, 124)),
+        ([(382, 226), (302, 226), (302, 28), (331, 28), (331, 21)], "E7", (307, 118)),
         ([(142, 174), (198, 174)], "E8 · T", (158, 181)),
         ([(95, 160), (95, 110)], "E9 · F", (101, 134)),
         ([(292, 174), (308, 158)], "E10 · T", (294, 170)),
         ([(245, 160), (245, 143), (95, 143), (95, 160)], "E11 · F", (160, 147)),
         ([(402, 144), (424, 126)], "E12 · T", (408, 137)),
-        ([(355, 136), (355, 126), (245, 126), (245, 160)], "E13 · F", (294, 130)),
-        ([(496, 112), (496, 24), (331, 24)], "E14", (483, 67)),
+        ([(355, 136), (355, 126), (95, 126), (95, 160)], "E13 · F", (214, 130)),
+        ([(414, 112), (405, 112), (405, 25), (335, 25), (331, 21)], "E14", (409, 67)),
         ([(142, 96), (198, 96)], "E15 · T", (157, 103)),
         ([(95, 82), (95, 48)], "E16 · F", (101, 63)),
         ([(292, 96), (308, 80)], "E17 · T", (294, 92)),
         ([(245, 82), (245, 65), (95, 65), (95, 82)], "E18 · F", (160, 69)),
         ([(402, 66), (424, 48)], "E19 · T", (408, 59)),
-        ([(355, 58), (355, 48), (245, 48), (245, 82)], "E20 · F", (294, 52)),
-        ([(496, 34), (496, 14), (331, 14)], "E21", (416, 17)),
+        ([(355, 58), (355, 48), (95, 48), (95, 82)], "E20 · F", (214, 52)),
+        ([(414, 34), (331, 34), (331, 21)], "E21", (369, 37)),
         ([(95, 20), (95, 11), (219, 11)], "E22", (151, 14)),
     ]
     for points, label, label_position in routes:
@@ -453,7 +470,7 @@ black_cases = [
     ("BB-DUR-05", "FR-A1.1", "duration 16", "Accept valid neighbour", "OK; all generated slots are 16 minutes", "test_bb_dur_05_accepts_duration_16_just_above_minimum"),
     ("BB-DUR-06", "FR-A1.1", "duration 479", "Accept valid neighbour", "OK; all generated slots are 479 minutes", "test_bb_dur_06_accepts_duration_479_just_below_maximum"),
     ("BB-THR-01", "FR-D1", "2 available; requested 2", "Normal result", "OK; all ranked attendee_count=2", "test_bb_thr_01_returns_ok_when_threshold_is_met"),
-    ("BB-THR-02", "FR-D1.1 / FR-E1.1", "best 2; requested 3", "Label near match; preserve 3", "BEST_AVAILABLE_BELOW_THRESHOLD; threshold 3; actual 2; warning names both", "test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_missed"),
+    ("BB-THR-02", "FR-D1.1 / FR-E1.1", "best 2; requested 3", "Label near match; preserve 3", "BEST_AVAILABLE_BELOW_THRESHOLD; threshold 3; actual 2; warning: No timeslot reached the requested minimum of 3; showing best available options for 2.", "test_bb_thr_02_returns_best_available_when_requested_threshold_is_narrowly_missed"),
     ("BB-THR-03", "FR-D1.1", "best 1; requested 2", "No group result; no routing", "NO_TIMESLOT_MEETS_THRESHOLD; 0 combinations; 0 route calls", "test_bb_thr_03_returns_no_timeslot_when_two_person_group_cannot_form"),
     ("BB-THR-04", "FR-A4", "threshold 0", "Reject non-positive value", "ValueError: Minimum-Attendee Threshold must be positive", "test_bb_thr_04_rejects_zero_threshold_as_non_positive"),
     ("BB-THR-05", "FR-A4 / FR-D1", "1 available; requested 1", "Accept explicit positive value", "OK; threshold 1; ranked attendee_count=1", "test_bb_thr_05_accepts_explicit_threshold_one_for_one_available_participant"),
@@ -609,6 +626,7 @@ def build_story() -> list:
 
     story += section("Black-box Test Design", "2")
     story += [p("The recommendation engine is treated as a sealed control boundary. Tests construct complete RecommendationRequest values and assert only returned RecommendationResult data or public validation errors. The deterministic router replaces only the external network provider; candidate generation, feasibility, routing adaptation, scoring and ranking remain real production code.")]
+    story += [p(BLACK_FIXTURE_TEXT, "Small")]
     eq = [
         ["Characteristic", "Equivalence classes", "Cases"],
         ["Duration", "invalid <15; valid 15-480; invalid >480", "BB-DUR-01..06"],
@@ -661,6 +679,7 @@ def build_story() -> list:
     story += [p("4.3 Cyclomatic complexity", "Subsection"), report_table(complexity_iv, [55 * mm, 118 * mm], font_size=7.7, leading=9.7), PageBreak()]
 
     story += section("Interval-validation Basis Paths", "4.4")
+    story += [p(INTERVAL_FIXTURE_TEXT, "Small")]
     iv_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
     iv_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in iv_cases]
     story += [report_table(iv_table, [17 * mm, 53 * mm, 34 * mm, 28 * mm, 29 * mm, 13 * mm], font_size=6.4, leading=8.0)]
@@ -680,6 +699,7 @@ def build_story() -> list:
     story += [p("5.3 Cyclomatic complexity", "Subsection"), report_table(complexity_pa, [55 * mm, 118 * mm], font_size=7.7, leading=9.7), PageBreak()]
 
     story += section("Participant-attendance Basis Paths", "5.4")
+    story += [p(PARTICIPANT_FIXTURE_TEXT, "Small")]
     pa_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
     pa_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pa_cases]
     story += [report_table(pa_table, [17 * mm, 58 * mm, 35 * mm, 25 * mm, 25 * mm, 13 * mm], font_size=6.15, leading=7.7)]

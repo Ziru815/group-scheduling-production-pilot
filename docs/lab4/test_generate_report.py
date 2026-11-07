@@ -100,3 +100,9 @@ class ReportEvidenceGateTests(TestCase):
         self.assertTrue(all(path.startswith("N1-") and path.endswith("-N15") for path in attendance_paths))
         self.assertTrue(all("loop valid" not in path for path in interval_paths))
         self.assertTrue(all("(T)" in path or "(F)" in path for path in interval_paths + attendance_paths))
+
+    def test_report_defines_shared_black_and_white_box_fixtures(self) -> None:
+        self.assertIn("7 November 2026, 08:00–18:00 SGT", generate_report.BLACK_FIXTURE_TEXT)
+        self.assertIn("14 November 2026, 10:00–12:00 SGT", generate_report.INTERVAL_FIXTURE_TEXT)
+        self.assertIn("11:59–12:30 BUSY", generate_report.PARTICIPANT_FIXTURE_TEXT)
+        self.assertIn("09:00–09:30 AVAILABLE", generate_report.PARTICIPANT_FIXTURE_TEXT)

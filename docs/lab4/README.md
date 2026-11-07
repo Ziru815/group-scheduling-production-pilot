@@ -102,7 +102,7 @@ npm run build
 
 Verified baseline results:
 
-- document/report guard regressions: 6 passed;
+- document/report guard regressions: 12 passed;
 - backend: 312 passed; one third-party deprecation warning;
 - frontend Node/UI tests: 21 passed;
 - lint: passed;
