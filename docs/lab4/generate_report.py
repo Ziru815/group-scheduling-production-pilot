@@ -751,7 +751,7 @@ def build_story() -> list:
     story += [report_table(trace, [45 * mm, 42 * mm, 86 * mm], font_size=6.9, leading=8.8)]
     story += [p("8.1 Pilot near-match decision", "Subsection")]
     story += [p("The production Pilot intentionally avoids a dead end when the requested threshold is narrowly missed. If the best actual attendance is at least the default minimum of 2, it returns only the best-attended slots as <b>BEST_AVAILABLE_BELOW_THRESHOLD</b>, keeps the requested value unchanged, and warns with requested versus actual attendance. If best attendance is below 2, it returns <b>NO_TIMESLOT_MEETS_THRESHOLD</b> before routing. This is now stated in SRS v2.3 and tested without changing production code.", "Callout")]
-    story += [p("8.2 Internal consistency", "Subsection"), p("The same fixed graph convention, node labels, edge sets, path IDs and complexity values are used by the DOT files, automated test names, generator data and this PDF. The report therefore has no conflict between diagrams, formulas and executed evidence."), PageBreak()]
+    story += [p("8.2 Internal consistency", "Subsection"), p("The same fixed graph convention, node labels, edge sets, path IDs and complexity values are used by the DOT files, automated test names, generator data and this PDF. The report therefore has no conflict between diagrams, formulas and executed evidence.")]
 
     story += section("Limitations, Conclusion and Reproduction", "9")
     story += [p("9.1 Limitations", "Subsection")]
