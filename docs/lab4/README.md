@@ -1,7 +1,9 @@
 # Lab 4 Software Testing Deliverable
 
-**Work product:** Black-box and white-box test cases and executed results  
-**Author:** Group 1 — Software Testing  
+**Work product:** Black-box and white-box test cases and executed results
+
+**Author:** Group 1 — Software Testing
+
 **Target version:** `feature/production-pilot` tree at `26cb622`
 
 ## Selected units

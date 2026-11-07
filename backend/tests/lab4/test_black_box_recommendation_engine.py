@@ -281,4 +281,3 @@ def test_bb_wgt_03_rejects_weight_minus_one_below_minimum() -> None:
 def test_bb_wgt_04_rejects_weight_101_above_maximum() -> None:
     with pytest.raises(ValueError, match="attendance weight must be between 0 and 100"):
         _generate(_request(session=_session(weight=101)))
-

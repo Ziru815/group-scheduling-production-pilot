@@ -252,4 +252,3 @@ Expected: clean branch, no whitespace errors, no unrelated files, no secrets.
 - [ ] **Step 5: Push the branch without changing production**
 
 Push `lab4/software-testing-report` to GitHub. Do not merge it into `feature/production-pilot` unless the user later requests that action.
-

@@ -193,4 +193,3 @@ def test_wb_pa_05_path_partial_coverage_is_unavailable() -> None:
         )
     )
     assert availability.status_for(SLOT_START, SLOT_END) is AttendanceStatus.UNAVAILABLE
-

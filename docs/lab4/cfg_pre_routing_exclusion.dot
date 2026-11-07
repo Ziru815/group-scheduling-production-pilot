@@ -36,4 +36,3 @@ digraph pre_routing_exclusion {
   N11 -> N13;
   N12 -> N13;
 }
-

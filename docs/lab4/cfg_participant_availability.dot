@@ -30,4 +30,3 @@ digraph participant_availability_status {
   N9 -> N11;
   N10 -> N11;
 }
-
