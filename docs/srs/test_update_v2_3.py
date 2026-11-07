@@ -59,7 +59,7 @@ class SrsV23RegressionTests(TestCase):
 
         expected = {
             "Minimum Attendee Threshold": ("default is 2", "default value = 2"),
-            "Candidate Timeslot": ("30-minute intervals", "step = 30 minutes"),
+            "Candidate Timeslot": ("15-minute intervals", "step = 15 minutes"),
             "Venue Shortlist": ("size is 10", "shortlist size = 10"),
             "Maximum Journey Time Threshold": ("60 minutes", "value = 60 minutes"),
         }
@@ -77,6 +77,22 @@ class SrsV23RegressionTests(TestCase):
         fr_d3 = " | ".join(_row(self.document, 13, "FR-D3"))
         self.assertIn("60 minutes", fr_d3)
         self.assertNotIn("TBD-1]", fr_d3)
+
+        all_text = "\n".join(
+            paragraph.text for paragraph in self.document.paragraphs
+        ) + "\n" + "\n".join(
+            cell.text
+            for table in self.document.tables
+            for row in table.rows
+            for cell in row.cells
+        )
+        self.assertNotIn("30-minute", all_text)
+        self.assertNotIn("step = 30 minutes", all_text)
+
+    def test_records_as_built_testing_approval(self) -> None:
+        revision_text = " | ".join(cell.text for cell in self.document.tables[0].rows[-1].cells)
+        self.assertIn("approved by Ziru Gao", revision_text)
+        self.assertIn("as-built production Pilot", revision_text)
 
     def test_recovery_resumes_with_venue_filtering_and_shortlisting(self) -> None:
         text = "\n".join(paragraph.text for paragraph in self.document.paragraphs)

@@ -59,7 +59,7 @@ def assert_v2_3(document: Document) -> None:
     assert configuration["MaximumJourneyTimeMinutes"] == "60"
     assert configuration["DefaultMinimumAttendeeThreshold"] == "2"
     assert configuration["VenueShortlistN"] == "10"
-    assert configuration["CandidateTimeslotStepMinutes"] == "30"
+    assert configuration["CandidateTimeslotStepMinutes"] == "15"
 
     combination = {
         row.cells[0].text: [cell.text for cell in row.cells]
@@ -147,9 +147,9 @@ def update_document_xml(source: bytes) -> bytes:
     set_row(
         revision,
         [
-            "SCEE Group 2",
+            "SCEE Group 2 — as-built testing baseline approved by Ziru Gao",
             "7 Nov 2026",
-            "Aligned the SRS with the production Pilot: documented near-match recovery and adopted the implemented journey-time, attendance, venue-shortlist and timeslot-step constants.",
+            "Approved the as-built production Pilot as the Lab 4 testing baseline: documented near-match recovery and adopted the implemented journey-time, attendance, venue-shortlist and 15-minute timeslot-step constants.",
             "2.3",
         ],
     )
@@ -173,12 +173,12 @@ def update_document_xml(source: bytes) -> bytes:
     replace_paragraph_start(
         root,
         "Priority: High. This feature is the product’s differentiator",
-        "Priority: High. This feature is the product’s differentiator, the joint optimisation of time against real travel time stated in Section 1.4. The production Pilot adopts a 60-minute maximum journey time, a default minimum attendance of 2, a venue shortlist of 10, and a 30-minute Candidate Timeslot step. The public-transport routing provider, optimal-group-size effect and tie-break rule remain unresolved (Appendix C, TBD-3, TBD-4 and TBD-9).",
+        "Priority: High. This feature is the product’s differentiator, the joint optimisation of time against real travel time stated in Section 1.4. The production Pilot adopts a 60-minute maximum journey time, a default minimum attendance of 2, a venue shortlist of 10, and a 15-minute Candidate Timeslot step. The public-transport routing provider, optimal-group-size effect and tie-break rule remain unresolved (Appendix C, TBD-3, TBD-4 and TBD-9).",
     )
     replace_paragraph_start(
         root,
         "The interval between successive Candidate Timeslot start times is not stated",
-        "The interval between successive Candidate Timeslot start times is 30 minutes (TBD-13 resolved).",
+        "The interval between successive Candidate Timeslot start times is 15 minutes (TBD-13 resolved).",
     )
     replace_paragraph_start(
         root,
@@ -254,7 +254,7 @@ def update_document_xml(source: bytes) -> bytes:
         find_row(glossary, "Candidate Timeslot"),
         [
             "Candidate Timeslot",
-            "A possible Session time generated inside the date range using the Session Duration. Successive possible start times are generated at 30-minute intervals.",
+            "A possible Session time generated inside the date range using the Session Duration. Successive possible start times are generated at 15-minute intervals.",
         ],
     )
     set_row(
@@ -333,7 +333,7 @@ def update_document_xml(source: bytes) -> bytes:
         ("MaximumJourneyTimeMinutes", "60", "FR-D3, TBD-1 resolved"),
         ("DefaultMinimumAttendeeThreshold", "2", "FR-A4, FR-D1.1, TBD-2 resolved"),
         ("VenueShortlistN", "10", "FR-C4, TBD-2 resolved"),
-        ("CandidateTimeslotStepMinutes", "30", "FR-C1, TBD-13 resolved"),
+        ("CandidateTimeslotStepMinutes", "15", "FR-C1, TBD-13 resolved"),
     ):
         row = find_row(configuration, key)
         values = row_values(row)
@@ -361,8 +361,8 @@ def update_document_xml(source: bytes) -> bytes:
         ],
         "Candidate Timeslot": [
             "Candidate Timeslot",
-            "A possible Session time generated inside the date range using the Session Duration. Successive possible starts use 30-minute intervals.",
-            "Start date and time; end date and time; attendance count; step = 30 minutes.",
+            "A possible Session time generated inside the date range using the Session Duration. Successive possible starts use 15-minute intervals.",
+            "Start date and time; end date and time; attendance count; step = 15 minutes.",
             "A Session can generate multiple Candidate Timeslots. Each timeslot can have multiple Timeslot Attendance records and can be paired with multiple Venues through Combinations.",
         ],
         "Venue Shortlist": [
@@ -410,7 +410,7 @@ def update_document_xml(source: bytes) -> bytes:
         find_row(tbd, "TBD-13"),
         [
             "TBD-13",
-            "What interval separates successive Candidate Timeslot start times? — RESOLVED: the production Pilot uses 30 minutes.",
+            "What interval separates successive Candidate Timeslot start times? — RESOLVED: the production Pilot uses 15 minutes.",
             "FR-C1",
             "Resolved",
         ],

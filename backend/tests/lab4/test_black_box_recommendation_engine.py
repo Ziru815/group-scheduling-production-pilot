@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from app.adapters.ports import RouteResult
+from app.recommender.config import RecommenderConfig
 from app.recommender.engine import RecommendationEngine
 from app.recommender.types import (
     Coordinates,
@@ -38,6 +39,12 @@ DAY = datetime(2026, 11, 7, 8, 0, tzinfo=SGT)
 NOW = datetime(2026, 11, 1, 10, 0, tzinfo=SGT)
 BISHAN = Coordinates(1.3510, 103.8485)
 TOA_PAYOH = Coordinates(1.3326, 103.8474)
+LAB4_PRODUCTION_CONFIG = RecommenderConfig(
+    max_journey_minutes=60,
+    shortlist_size=10,
+    default_minimum_attendee_threshold=2,
+    timeslot_step_minutes=15,
+)
 
 
 class FixedRouter:
@@ -132,7 +139,17 @@ def _request(
 
 
 def _generate(request: RecommendationRequest, router: FixedRouter | None = None):
-    return asyncio.run(RecommendationEngine(router or FixedRouter()).generate(request))
+    engine = RecommendationEngine(router or FixedRouter(), LAB4_PRODUCTION_CONFIG)
+    return asyncio.run(engine.generate(request))
+
+
+def test_lab4_harness_uses_deployed_fifteen_minute_step() -> None:
+    """Keep the Lab 4 oracle aligned with Render's production configuration."""
+    result = _generate(_request())
+    starts = [timeslot.start for timeslot in result.timeslots]
+
+    assert len(starts) >= 2
+    assert starts[1] - starts[0] == timedelta(minutes=15)
 
 
 def test_bb_dur_01_rejects_duration_14_below_minimum() -> None:
