@@ -301,35 +301,35 @@ def pre_routing_chart() -> Drawing:
 
 
 def availability_chart() -> Drawing:
-    d = Drawing(480, 330)
+    d = Drawing(480, 285)
     main, side = 190, 390
     nodes = {
-        "N1": (main, 314, 105, 24, "N1  Entry", "oval", PALE_GREEN),
-        "N2": (main, 270, 145, 30, "N2\nresponse record missing?", "diamond", PALE_GOLD),
-        "N3": (side, 270, 135, 28, "N3  return\nNO_RESPONSE", "box", PALE_RED),
-        "N4": (main, 215, 140, 30, "N4\nrecord withdrawn?", "diamond", PALE_GOLD),
-        "N5": (side, 215, 135, 28, "N5  return\nWITHDRAWN", "box", PALE_RED),
-        "N6": (main, 160, 140, 30, "N6\nany BUSY overlap?", "diamond", PALE_GOLD),
-        "N7": (side, 160, 135, 28, "N7  return\nUNAVAILABLE", "box", PALE_RED),
-        "N8": (main, 105, 155, 30, "N8\nslot fully inside AVAILABLE?", "diamond", PALE_GOLD),
-        "N9": (side, 105, 135, 28, "N9  return\nAVAILABLE", "box", PALE_GREEN),
+        "N1": (main, 271, 105, 24, "N1  Entry", "oval", PALE_GREEN),
+        "N2": (main, 235, 145, 28, "N2\nresponse record missing?", "diamond", PALE_GOLD),
+        "N3": (side, 235, 135, 26, "N3  return\nNO_RESPONSE", "box", PALE_RED),
+        "N4": (main, 190, 140, 28, "N4\nrecord withdrawn?", "diamond", PALE_GOLD),
+        "N5": (side, 190, 135, 26, "N5  return\nWITHDRAWN", "box", PALE_RED),
+        "N6": (main, 145, 140, 28, "N6\nany BUSY overlap?", "diamond", PALE_GOLD),
+        "N7": (side, 145, 135, 26, "N7  return\nUNAVAILABLE", "box", PALE_RED),
+        "N8": (main, 100, 155, 28, "N8\nslot fully inside AVAILABLE?", "diamond", PALE_GOLD),
+        "N9": (side, 100, 135, 26, "N9  return\nAVAILABLE", "box", PALE_GREEN),
         "N10": (main, 55, 135, 28, "N10  return\nUNAVAILABLE", "box", PALE_RED),
-        "N11": (main, 17, 90, 22, "N11  Exit", "oval", PALE_GREEN),
+        "N11": (main, 16, 90, 22, "N11  Exit", "oval", PALE_GREEN),
     }
     for values in nodes.values():
         add_node(d, *values)
-    add_arrow(d, main, 302, main, 285)
-    add_arrow(d, main + 72, 270, side - 68, 270, "T")
-    add_arrow(d, main, 255, main, 230, "F")
-    add_arrow(d, main + 70, 215, side - 68, 215, "T")
-    add_arrow(d, main, 200, main, 175, "F")
-    add_arrow(d, main + 70, 160, side - 68, 160, "T")
-    add_arrow(d, main, 145, main, 120, "F")
-    add_arrow(d, main + 77, 105, side - 68, 105, "T")
-    add_arrow(d, main, 90, main, 69, "F")
+    add_arrow(d, main, 259, main, 249)
+    add_arrow(d, main + 72, 235, side - 68, 235, "T")
+    add_arrow(d, main, 221, main, 204, "F")
+    add_arrow(d, main + 70, 190, side - 68, 190, "T")
+    add_arrow(d, main, 176, main, 159, "F")
+    add_arrow(d, main + 70, 145, side - 68, 145, "T")
+    add_arrow(d, main, 131, main, 114, "F")
+    add_arrow(d, main + 77, 100, side - 68, 100, "T")
+    add_arrow(d, main, 86, main, 69, "F")
     add_arrow(d, main, 41, main, 28)
-    for x, y in [(side, 256), (side, 201), (side, 146), (side, 91)]:
-        add_arrow(d, x, y, main + 45, 17, dashed=True)
+    for x, y in [(side, 222), (side, 177), (side, 132), (side, 87)]:
+        add_arrow(d, x, y, main + 45, 16, dashed=True)
     return d
 
 
@@ -475,10 +475,9 @@ def build_story():
     black_table = [["Case", "Req.", "Test input / precondition", "Expected output", "Actual output", "Result"]]
     black_table += [[row[0], row[1], row[2], row[3], row[4], "PASS"] for row in black_cases]
     story += [table(black_table, [20 * mm, 20 * mm, 42 * mm, 36 * mm, 48 * mm, 14 * mm], font_size=6.15, leading=7.7)]
-    story += [Spacer(1, 5 * mm), p("Evidence: every row above corresponds to one passing pytest function with the same case ID. The JUnit result contained 17 black-box cases, 0 failures, and 0 errors.", "Callout"), PageBreak()]
+    story += [Spacer(1, 5 * mm), p("Evidence: every row above corresponds to one passing pytest function with the same case ID. The JUnit result contained 17 black-box cases, 0 failures, and 0 errors.", "Callout"), Spacer(1, 3 * mm)]
+    story += [KeepTogether(section("White-box Method 1: Pre-routing Exclusion", "4") + [p("This method applies feasibility rules in priority order before any routing request: the session threshold (FR-D1), sports-facility minimum group size (FR-D4), and sports-facility booking lead time (FR-D5). The compound minimum-group expression is split into two short-circuit decisions in the control-flow graph.")]), PageBreak()]
 
-    story += section("White-box Method 1: Pre-routing Exclusion", "4")
-    story += [p("This method applies feasibility rules in priority order before any routing request: the session threshold (FR-D1), sports-facility minimum group size (FR-D4), and sports-facility booking lead time (FR-D5). The compound minimum-group expression is split into two short-circuit decisions in the control-flow graph.")]
     story += [p("4.1 Source excerpt", "Subsection")]
     story += [Preformatted(source_excerpt(ROOT / "backend/app/recommender/feasibility.py", 20, 44), styles["CodeBlock"])]
     story += [p("4.2 Control-flow graph", "Subsection"), pre_routing_chart()]
@@ -494,15 +493,18 @@ def build_story():
     story += [p("4.4 Independent paths and executed results", "Subsection")]
     pr_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
     pr_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pr_paths]
-    story += [table(pr_table, [19 * mm, 58 * mm, 42 * mm, 25 * mm, 25 * mm, 14 * mm], font_size=6.05, leading=7.5)]
-    story += [PageBreak()]
+    story += [table(pr_table, [19 * mm, 58 * mm, 42 * mm, 25 * mm, 25 * mm, 14 * mm], font_size=6.9, leading=8.7)]
+    story += [Spacer(1, 5 * mm)]
 
     story += section("White-box Method 2: Participant Attendance Status", "5")
     story += [p("This method preserves four distinct participant states. A missing response and a withdrawn response are returned before interval processing. For an active response, any BUSY overlap overrides AVAILABLE time; otherwise the slot must be fully contained in an AVAILABLE block.")]
     story += [p("5.1 Source excerpt", "Subsection")]
     story += [Preformatted(source_excerpt(ROOT / "backend/app/recommender/candidate_generation.py", 111, 124), styles["CodeBlock"])]
-    story += [p("5.2 Control-flow graph", "Subsection"), availability_chart()]
-    story += [p("Figure 2. Application-level CFG for _ParticipantAvailability.status_for(). Each any(...) result is one boolean decision; Python iterator internals are outside this graph's abstraction boundary.", "Small"), PageBreak()]
+    story += [KeepTogether([
+        p("5.2 Control-flow graph", "Subsection"),
+        availability_chart(),
+        p("Figure 2. Application-level CFG for _ParticipantAvailability.status_for(). Each any(...) result is one boolean decision; Python iterator internals are outside this graph's abstraction boundary.", "Small"),
+    ])]
     story += [p("5.3 Cyclomatic complexity", "Subsection")]
     complexity2 = [
         ["Calculation", "Value"],
@@ -514,10 +516,9 @@ def build_story():
     story += [p("5.4 Independent paths and executed results", "Subsection")]
     pa_table = [["Case", "Independent node path", "Input", "Expected", "Actual", "Result"]]
     pa_table += [[r[0], r[1], r[2], r[3], r[4], "PASS"] for r in pa_paths]
-    story += [table(pa_table, [19 * mm, 55 * mm, 48 * mm, 23 * mm, 23 * mm, 14 * mm], font_size=6.15, leading=7.7)]
+    story += [table(pa_table, [19 * mm, 55 * mm, 48 * mm, 23 * mm, 23 * mm, 14 * mm], font_size=6.9, leading=8.7)]
     story += [PageBreak()]
 
-    story += section("Execution Evidence and Cross-check", "6")
     result_data = [
         ["Verification", "Observed result", "Status"],
         ["Lab 4 black-box tests", "17 passed, 0 failed, 0 errors", "PASS"],
@@ -528,8 +529,7 @@ def build_story():
         ["Frontend lint", "oxlint exit code 0", "PASS"],
         ["Frontend production build", "152 modules transformed; build exit code 0", "PASS"],
     ]
-    story += [table(result_data, [58 * mm, 89 * mm, 26 * mm], font_size=7.7, leading=9.8)]
-    story += [p("6.1 Manual compliance matrix", "Subsection")]
+    story += [KeepTogether(section("Execution Evidence and Cross-check", "6") + [table(result_data, [58 * mm, 89 * mm, 26 * mm], font_size=7.7, leading=9.8)])]
     compliance = [
         ["Manual requirement", "Evidence in this report", "Status"],
         ["3.2.1: one important control class", "RecommendationEngine.generate(); Sections 2-3", "Met"],
@@ -540,7 +540,7 @@ def build_story():
         ["3.2.3: minimise cases", "One representative per partition plus boundary neighbours; Section 2.3", "Met"],
         ["3.2.4: execute and document", "Every row has input, expected, actual, and result; Section 6", "Met"],
     ]
-    story += [table(compliance, [51 * mm, 96 * mm, 26 * mm], font_size=7.3, leading=9.4)]
+    story += [KeepTogether([p("6.1 Manual compliance matrix", "Subsection"), table(compliance, [51 * mm, 96 * mm, 26 * mm], font_size=7.3, leading=9.4)])]
     story += [p("6.2 Consistency checks", "Subsection")]
     checks = [
         "All 29 report case IDs exactly match the 29 JUnit test names.",
@@ -550,16 +550,14 @@ def build_story():
         "Actual outputs are literal observations asserted by the final passing tests, not restatements of expected output.",
         "No secrets, access tokens, credentials, or personal availability data appear in this report.",
     ]
-    story += [Table([[p(f"{i + 1}.", "Small"), p(item, "Small")] for i, item in enumerate(checks)], colWidths=[8 * mm, 165 * mm], style=TableStyle([("VALIGN", (0,0), (-1,-1), "TOP"), ("BOTTOMPADDING", (0,0), (-1,-1), 5)]))]
-    story += [PageBreak()]
+    story += [Table([[p(f"{i + 1}.", "Small"), p(item, "Small")] for i, item in enumerate(checks)], colWidths=[8 * mm, 165 * mm], style=TableStyle([("VALIGN", (0,0), (-1,-1), "TOP"), ("BOTTOMPADDING", (0,0), (-1,-1), 3)])), Spacer(1, 3 * mm)]
 
     story += section("Limitations and Conclusion", "7")
     story += [p("7.1 Limitations", "Subsection")]
     story += [p("The black-box control tests use a deterministic router at the external provider port so that boundary outcomes are reproducible and do not depend on OneMap availability. This is appropriate for unit-level control-class testing but does not replace the separate deployed smoke test of Google authentication, OneMap, PostgreSQL, and Render. The report also uses an application-level CFG: the internal iteration performed by Python's any(...) is treated as part of expression evaluation rather than as a separate business-logic decision.")]
     story += [p("7.2 Conclusion", "Subsection")]
     story += [p("The selected tests provide systematic evidence for the recommendation control logic and two complex decision methods. Equivalence partitioning, boundary-value analysis, and basis-path testing were applied consistently; redundant combinations were avoided; all expected and actual results are traceable to automated test IDs; and the full regression checks found no introduced failures.", "Callout")]
-    story += [p("Reference", "Subsection")]
-    story += [p("SC2006 Lab 4 Manual: Implementation, Testing, and Preparation for Demo, sections 3.2.1-3.2.4. Source code and automated tests are available on branch lab4/software-testing-report.")]
+    story += [p("<b>Reference.</b> SC2006 Lab 4 Manual: Implementation, Testing, and Preparation for Demo, sections 3.2.1-3.2.4. Source code and automated tests are available on branch lab4/software-testing-report.", "Small")]
     return story
 
 
@@ -568,7 +566,7 @@ def main():
     doc = ReportDocTemplate(str(OUTPUT))
     doc.build(build_story())
     reader = PdfReader(str(OUTPUT))
-    assert 9 <= len(reader.pages) <= 10, f"Compact report must be 9-10 pages, got {len(reader.pages)}"
+    assert 8 <= len(reader.pages) <= 10, f"Compact report must be 8-10 pages, got {len(reader.pages)}"
     report_ids = {row[0] for row in black_cases + pr_paths + pa_paths}
     assert len(report_ids) == 29, f"Expected 29 unique report IDs, got {len(report_ids)}"
     extracted = "\n".join(page.extract_text() or "" for page in reader.pages)

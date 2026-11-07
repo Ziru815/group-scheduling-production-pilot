@@ -38,7 +38,7 @@ cd ..
 python docs/lab4/generate_report.py
 ```
 
-Expected generator result: one portrait-A4 PDF of 9-10 pages containing exactly 29 case IDs, both verified complexity formulas, and Manual 3.2.1-3.2.4 traceability.
+Expected generator result: one compact portrait-A4 PDF of 8-10 pages containing exactly 29 case IDs, both verified complexity formulas, and Manual 3.2.1-3.2.4 traceability.
 
 ## Reproduce the assessment tests
 
