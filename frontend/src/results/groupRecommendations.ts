@@ -8,6 +8,10 @@ export interface RankedOptionGroup {
 
 const INITIAL_TIME_LIMIT = 6
 
+export function formatAverageTravelMinutes(minutes: number): string {
+  return minutes.toFixed(2)
+}
+
 function groupingKey(option: RankedCombination): string {
   const attendees = option.attendees
     .map((attendee) => [

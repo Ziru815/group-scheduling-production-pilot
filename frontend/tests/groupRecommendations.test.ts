@@ -4,6 +4,7 @@ import test from 'node:test'
 import type { RankedCombination } from '../src/api/types.ts'
 import {
   chooseRecommendationTime,
+  formatAverageTravelMinutes,
   groupRankedCombinations,
   selectedOptionForGroup,
   type RankedOptionGroup,
@@ -11,6 +12,11 @@ import {
 } from '../src/results/groupRecommendations.ts'
 
 const MINUTE_MS = 60_000
+
+test('formats average travel time to exactly two decimal places', () => {
+  assert.equal(formatAverageTravelMinutes(10 / 3), '3.33')
+  assert.equal(formatAverageTravelMinutes(5), '5.00')
+})
 
 function option(
   id: string,

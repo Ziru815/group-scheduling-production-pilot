@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { RankedCombination } from '../api/types'
 import { formatTimeRange } from '../lib/time'
 import { ABSENCE_LABELS, TRANSPORT_LABELS } from '../sessions/labels'
-import { visibleTimeOptions } from './groupRecommendations'
+import { formatAverageTravelMinutes, visibleTimeOptions } from './groupRecommendations'
 import { mapsLink } from './maps'
 import { venueAvailabilityGuidance, venueCategoryLabel, venueOfficialLinkLabel } from './venueGuidance'
 import './RankedOptionCard.css'
@@ -82,7 +82,9 @@ export function RankedOptionCard({
           <span className="ropt__when">{formatTimeRange(o.start, o.end, timeZone)}</span>
           <span className="ropt__facts">
             {o.attendeeCount} attending ·{' '}
-            {o.averageTravelMinutes === null ? 'avg travel unavailable' : `${o.averageTravelMinutes} min avg travel`}
+            {o.averageTravelMinutes === null
+              ? 'avg travel unavailable'
+              : `${formatAverageTravelMinutes(o.averageTravelMinutes)} min avg travel`}
           </span>
           {options.length > 1 && <span className="ropt__time-count">{options.length} time options</span>}
         </div>
