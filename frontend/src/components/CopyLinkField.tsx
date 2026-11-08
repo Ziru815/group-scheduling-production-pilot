@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import './CopyLinkField.css'
 
 type Props = {
@@ -8,22 +9,33 @@ type Props = {
   url: string
   shareTitle?: string
   shareText?: string
+  message?: string
+  showQr?: boolean
 }
 
 /** Read-only link with Copy (and Share, where the device supports it). */
-export function CopyLinkField({ id, label, url, shareTitle, shareText }: Props) {
+export function CopyLinkField({ id, label, url, shareTitle, shareText, message, showQr = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState('')
+  const [qrExpanded, setQrExpanded] = useState(false)
   const canShare = typeof navigator.share === 'function'
 
-  async function copy() {
+  async function copyText(text: string, successMessage: string) {
     try {
-      await navigator.clipboard.writeText(url)
-      setStatus('Link copied')
+      await navigator.clipboard.writeText(text)
+      setStatus(successMessage)
     } catch {
       inputRef.current?.select()
       setStatus("Couldn't copy automatically. The link is selected, so copy it manually.")
     }
+  }
+
+  async function copy() {
+    await copyText(url, 'Link copied')
+  }
+
+  async function copyMessage() {
+    if (message) await copyText(message, 'Invitation message copied')
   }
 
   async function share() {
@@ -56,10 +68,40 @@ export function CopyLinkField({ id, label, url, shareTitle, shareText }: Props) 
       <p className="copylink__status" role="status" aria-live="polite">
         {status}
       </p>
-      {canShare && (
-        <button type="button" className="copylink__share" onClick={() => void share()}>
-          Share link…
-        </button>
+      <div className="copylink__actions">
+        {message && (
+          <button type="button" className="copylink__message" onClick={() => void copyMessage()}>
+            Copy invitation message
+          </button>
+        )}
+        {canShare && (
+          <button type="button" className="copylink__share" onClick={() => void share()}>
+            Share link…
+          </button>
+        )}
+        {showQr && (
+          <button
+            type="button"
+            className="copylink__qr-toggle"
+            aria-expanded={qrExpanded}
+            onClick={() => setQrExpanded((current) => !current)}
+          >
+            {qrExpanded ? 'Hide QR code' : 'Show QR code'}
+          </button>
+        )}
+      </div>
+      {showQr && qrExpanded && (
+        <div className="copylink__qr-panel">
+          <QRCodeSVG
+            className="copylink__qr"
+            value={url}
+            title="Invitation QR code"
+            level="M"
+            marginSize={4}
+            size={220}
+          />
+          <p>Show this code so people nearby can scan and join. For online sharing, copy the invitation message.</p>
+        </div>
       )}
     </div>
   )

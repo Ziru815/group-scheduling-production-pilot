@@ -57,6 +57,17 @@ export function JoinPage() {
 
   if (!preview) return null
 
+  if (!preview.activitySupported) {
+    return (
+      <StatusMessage
+        title="This activity is currently unavailable"
+        action={<Link className="btn-primary" to="/sessions">Go to your sessions</Link>}
+      >
+        This is an older invitation. The activity no longer has a verified venue catalogue, so the session is read-only and cannot accept new members.
+      </StatusMessage>
+    )
+  }
+
   // UC-05.AC.1: closed sessions show their status instead of the entry flow.
   if (preview.isClosed) return <ClosedInvitation preview={preview} />
 

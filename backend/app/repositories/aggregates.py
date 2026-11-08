@@ -6,9 +6,11 @@ from sqlmodel import Session, col, delete, select
 
 from app.models import (
     ActivityType, AvailabilityInterval, AvailabilityRecord, CalendarConnection,
+    CalendarCredential,
     CalendarEvent, CandidateTimeslot, Combination, Participant, RecordStatus,
     SchedulingSession, ShortlistStatus, TimeslotAttendance, TravelEstimate,
     UserAccount, Venue, VenueActivity, VenueShortlistEntry,
+    VenueVerificationStatus,
 )
 
 
@@ -53,8 +55,29 @@ class AvailabilityRepository:
 class VenueRepository:
     def __init__(self, db: Session): self.db = db
     def activities(self): return list(self.db.exec(select(ActivityType).where(ActivityType.is_active == True)).all())  # noqa: E712
-    def supported_for_activity(self, activity_type_id: UUID):
-        return list(self.db.exec(select(Venue).join(VenueActivity, VenueActivity.venue_id == Venue.venue_id).where(VenueActivity.activity_type_id == activity_type_id, VenueActivity.support_status == "SUPPORTED")).all())
+    def has_verified_support(self, activity_type_id: UUID) -> bool:
+        return self.db.exec(
+            select(Venue.venue_id)
+            .join(VenueActivity, VenueActivity.venue_id == Venue.venue_id)
+            .where(
+                VenueActivity.activity_type_id == activity_type_id,
+                VenueActivity.support_status == "SUPPORTED",
+                Venue.is_active == True,  # noqa: E712
+                Venue.verification_status == VenueVerificationStatus.VERIFIED_PUBLIC,
+            )
+            .limit(1)
+        ).first() is not None
+    def supported_for_activity(self, activity_type_id: UUID, *, require_verified: bool = False):
+        query = select(Venue).join(VenueActivity, VenueActivity.venue_id == Venue.venue_id).where(
+            VenueActivity.activity_type_id == activity_type_id,
+            VenueActivity.support_status == "SUPPORTED",
+        )
+        if require_verified:
+            query = query.where(
+                Venue.is_active == True,  # noqa: E712
+                Venue.verification_status == VenueVerificationStatus.VERIFIED_PUBLIC,
+            )
+        return list(self.db.exec(query).all())
 
 
 class RecommendationRepository:
@@ -106,4 +129,6 @@ class CalendarRepository:
     def connection(self, participant_id: UUID): return self.db.exec(select(CalendarConnection).where(CalendarConnection.participant_id == participant_id)).first()
     def save(self, item): self.db.add(item); self.db.flush(); return item
     def events(self, session_id: UUID): return list(self.db.exec(select(CalendarEvent).where(CalendarEvent.session_id == session_id)).all())
+    def credential_for_user(self, account_id: UUID): return self.db.exec(select(CalendarCredential).where(CalendarCredential.user_account_id == account_id)).first()
+    def credential(self, credential_id: UUID): return self.db.get(CalendarCredential, credential_id)
 

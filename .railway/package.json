@@ -1,0 +1,14 @@
+{
+  "name": "group-scheduling-railway-config",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2023 railway.ts"
+  },
+  "dependencies": {
+    "railway": "3.16.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,72 @@
+services:
+  - type: web
+    name: group-scheduling-app
+    runtime: docker
+    region: singapore
+    plan: starter
+    branch: feature/production-pilot
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh scripts/start_production.sh
+    healthCheckPath: /ready
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: group-scheduling-postgres
+          property: connectionString
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: AUTO_CREATE_TABLES
+        value: "false"
+      - key: APP_SESSION_SECRET
+        generateValue: true
+      - key: DEBUG_AUTH_ENABLED
+        value: "false"
+      - key: USE_MOCK_PROVIDERS
+        value: "false"
+      - key: FRONTEND_BASE_URL
+        sync: false
+      - key: STATIC_DIR
+        value: /app/static
+      - key: SESSION_COOKIE_NAME
+        value: group_scheduler_session
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_CALENDAR_ENABLED
+        value: "false"
+      - key: GOOGLE_CALENDAR_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_CALENDAR_CREDENTIAL_KEY
+        sync: false
+      - key: GOOGLE_CALENDAR_OAUTH_TRANSACTION_COOKIE_NAME
+        value: group_scheduler_calendar_oauth
+      - key: ONEMAP_TOKEN
+        sync: false
+      - key: DEFAULT_JOURNEY_CAP_MINUTES
+        value: "60"
+      - key: DEFAULT_MINIMUM_ATTENDEES
+        value: "2"
+      - key: DEFAULT_SHORTLIST_SIZE
+        value: "10"
+      - key: DEFAULT_PARTICIPANT_LIMIT
+        value: "12"
+      - key: DEFAULT_TIMESLOT_STEP_MINUTES
+        value: "15"
+
+databases:
+  - name: group-scheduling-postgres
+    region: singapore
+    plan: free
+    postgresMajorVersion: "16"
+    databaseName: group_scheduling
+    user: group_scheduler
+    ipAllowList: []

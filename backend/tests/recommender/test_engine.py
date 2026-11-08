@@ -85,6 +85,7 @@ def test_routing_failure_marks_data_unavailable_not_excluded(run):
         assert c.exclusion_reason is None and c.rank is None
         b = next(t for t in c.travel if t.participant_id == "b")
         assert b.status is RoutingStatus.UNAVAILABLE and b.minutes is None
+        assert all(estimate.minutes is None or estimate.minutes > 0 for estimate in c.travel)
     assert result.ranked == []
     assert any("NFR-3" in w for w in result.warnings)
 

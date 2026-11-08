@@ -5,11 +5,13 @@
 
 .copylink__row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
 .copylink__input {
   flex: 1;
+  min-width: 0;
   font-size: var(--text-sm);
   text-overflow: ellipsis;
 }
@@ -31,11 +33,48 @@
   color: var(--color-primary);
 }
 
-.copylink__share {
+.copylink__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.copylink__message,
+.copylink__share,
+.copylink__qr-toggle {
+  flex: 1 1 180px;
   min-height: var(--tap-target);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.copylink__message {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.copylink__qr-panel {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.copylink__qr {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+}
+
+.copylink__qr-panel p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }

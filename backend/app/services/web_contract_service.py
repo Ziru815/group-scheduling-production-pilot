@@ -4,26 +4,21 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import HTTPException
 from sqlmodel import Session, col, select
 
-from app.core.config import settings
 from app.models import (
     ActivityType,
     AttendanceStatus,
     AvailabilityInterval,
     AvailabilityRecord,
-    CalendarConnection,
-    CalendarEvent,
     CandidateTimeslot,
     Combination,
     CombinationStatus,
-    ConnectionStatus,
-    EventStatus,
-    EventType,
     FeasibilityStatus,
     GeocodeStatus,
     IntervalSource,
@@ -36,15 +31,25 @@ from app.models import (
     SchedulingSession,
     SessionStatus,
     SubmissionSource,
+    SupportStatus,
     TimeslotAttendance,
     TravelEstimate,
     UserAccount,
     Venue,
+    VenueActivity,
+    VenueCategory,
 )
 from app.repositories import AvailabilityRepository, ParticipantRepository, SessionRepository
 from app.schemas.web import SaveResponseRequest
+from app.services.activity_availability import (
+    activity_is_supported,
+    production_support_required,
+    require_mutable_activity,
+    supported_activity_categories,
+)
 from app.services.application_services import _bump_revision, _ensure_active, _get_session_or_404, _utcnow
 from app.services.authorization_service import require_member, require_organiser
+from app.services.calendar_sync_service import CalendarSyncService
 
 
 def session_zone(name: str) -> ZoneInfo:
@@ -60,11 +65,10 @@ def local_datetime(value: datetime, timezone_name: str) -> datetime:
 
 
 def activity_categories(db: Session) -> list[dict]:
-    activities = list(db.exec(select(ActivityType).where(ActivityType.is_active == True).order_by(ActivityType.category, ActivityType.name)).all())  # noqa: E712
-    grouped: dict[str, list[dict]] = {}
-    for activity in activities:
-        grouped.setdefault(activity.category.title(), []).append({"id": activity.activity_type_id, "name": activity.name})
-    return [{"category": category, "types": values} for category, values in grouped.items()]
+    return supported_activity_categories(
+        db,
+        require_verified=production_support_required(),
+    )
 
 
 def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> dict:
@@ -80,6 +84,11 @@ def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> d
         "id": item.session_id,
         "name": item.name,
         "activityType": {"id": activity.activity_type_id, "name": activity.name, "category": activity.category.title()},
+        "activitySupported": activity_is_supported(
+            db,
+            item.activity_type_id,
+            require_verified=production_support_required(),
+        ),
         "organiserName": organiser.display_name,
         "status": item.status.value,
         "myRole": member.role.value,
@@ -97,7 +106,7 @@ def session_detail(db: Session, user: UserAccount, item: SchedulingSession) -> d
         "isClosed": item.status != SessionStatus.ACTIVE or _utcnow() > _as_utc(deadline),
         "recommendationsStale": stale,
         "hasRecommendations": has_recommendations,
-        "confirmed": confirmed_plan(db, item),
+        "confirmed": confirmed_plan(db, item, user),
     }
 
 
@@ -153,6 +162,11 @@ def invitation_preview(db: Session, user: UserAccount, token: str) -> dict:
         "responseDeadline": deadline,
         "isClosed": item.status != SessionStatus.ACTIVE or _utcnow() > _as_utc(deadline),
         "alreadyJoined": existing is not None,
+        "activitySupported": activity_is_supported(
+            db,
+            item.activity_type_id,
+            require_verified=production_support_required(),
+        ),
     }
 
 
@@ -169,6 +183,7 @@ def save_response(db: Session, user: UserAccount, session_id: UUID, data: SaveRe
     participant = require_member(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if _utcnow() > _as_utc(local_datetime(item.response_deadline, item.timezone)):
         raise HTTPException(409, "Response deadline has passed")
     repo = AvailabilityRepository(db)
@@ -239,6 +254,7 @@ def withdraw_response(db: Session, user: UserAccount, session_id: UUID) -> dict:
     participant = require_member(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if _utcnow() > _as_utc(local_datetime(item.response_deadline, item.timezone)):
         raise HTTPException(409, "Response deadline has passed")
     record = AvailabilityRepository(db).current(participant.participant_id)
@@ -310,7 +326,7 @@ def recommendation_set(db: Session, user: UserAccount, session_id: UUID) -> dict
     }
 
 
-def confirmed_plan(db: Session, item: SchedulingSession) -> dict | None:
+def confirmed_plan(db: Session, item: SchedulingSession, user: UserAccount) -> dict | None:
     if item.confirmed_combination_id is None:
         return None
     combo = db.get(Combination, item.confirmed_combination_id)
@@ -323,20 +339,25 @@ def confirmed_plan(db: Session, item: SchedulingSession) -> dict | None:
     for row in attendance:
         participant = db.get(Participant, row.participant_id)
         attendees.append({"participantId": participant.participant_id, "displayName": participant.display_name})
-    return {
+    result = {
         "combinationId": combo.combination_id,
-        "venue": _venue(venue),
+        "venue": _venue(db, venue, item.activity_type_id),
         "start": local_datetime(slot.start_date_time, item.timezone),
         "end": local_datetime(slot.end_date_time, item.timezone),
         "attendees": attendees,
         "confirmedAt": _aware_utc(item.confirmed_at or item.updated_at),
     }
+    result["calendarSync"] = CalendarSyncService.confirmed_summary(
+        db, user, item.session_id
+    ).to_api()
+    return result
 
 
 def confirm_plan(db: Session, user: UserAccount, session_id: UUID, combination_id: UUID) -> dict:
     require_organiser(db, session_id, user)
     item = _get_session_or_404(db, session_id, lock=True)
     _ensure_active(item)
+    require_mutable_activity(db, item, require_verified=production_support_required())
     if item.recommendations_source_revision != item.source_revision:
         raise HTTPException(409, "Recommendations are stale")
     combo = db.get(Combination, combination_id)
@@ -353,33 +374,8 @@ def confirm_plan(db: Session, user: UserAccount, session_id: UUID, combination_i
     item.status = SessionStatus.CONFIRMED
     db.add(combo)
     db.add(item)
-    _sync_confirmed_calendar_events(db, item, combo)
     db.commit()
     return session_detail(db, user, item)
-
-
-def _sync_confirmed_calendar_events(db: Session, item: SchedulingSession, combo: Combination) -> None:
-    holds = list(db.exec(select(CalendarEvent).where(CalendarEvent.session_id == item.session_id, CalendarEvent.event_type == EventType.TENTATIVE_HOLD)).all())
-    for hold in holds:
-        hold.event_status = EventStatus.DELETED
-        db.add(hold)
-    attendance = list(db.exec(select(TimeslotAttendance).where(TimeslotAttendance.candidate_timeslot_id == combo.candidate_timeslot_id, TimeslotAttendance.attendance_status == AttendanceStatus.AVAILABLE)).all())
-    for attendee in attendance:
-        connection = db.exec(select(CalendarConnection).where(CalendarConnection.participant_id == attendee.participant_id, CalendarConnection.connection_status == ConnectionStatus.CONNECTED)).first()
-        if connection is None:
-            continue
-        db.add(
-            CalendarEvent(
-                calendar_connection_id=connection.connection_id,
-                session_id=item.session_id,
-                candidate_timeslot_id=combo.candidate_timeslot_id,
-                combination_id=combo.combination_id,
-                event_type=EventType.CONFIRMED_EVENT,
-                event_status=EventStatus.ACTIVE if settings.use_mock_providers else EventStatus.ERROR,
-                provider_event_id=(f"demo-confirmed:{combo.combination_id}:{attendee.participant_id}" if settings.use_mock_providers else None),
-                last_error=(None if settings.use_mock_providers else "Google Calendar provider is not configured"),
-            )
-        )
 
 
 def _combination_projection(db: Session, combo: Combination, fallback_rank: int) -> dict:
@@ -426,7 +422,7 @@ def _combination_projection(db: Session, combo: Combination, fallback_rank: int)
     return {
         "combinationId": combo.combination_id,
         "rank": combo.rank or fallback_rank,
-        "venue": _venue(venue),
+        "venue": _venue(db, venue, session.activity_type_id),
         "start": local_datetime(slot.start_date_time, session.timezone),
         "end": local_datetime(slot.end_date_time, session.timezone),
         "feasibilityStatus": combo.feasibility_status.value,
@@ -478,14 +474,70 @@ def _participant_mode(db: Session, participant_id: UUID) -> str:
     return record.transport_mode.value if record else "PUBLIC_TRANSPORT"
 
 
-def _venue(venue: Venue) -> dict:
+def _official_url(db: Session, venue: Venue, activity_type_id: UUID) -> str | None:
+    activity = db.exec(
+        select(VenueActivity).where(
+            VenueActivity.venue_id == venue.venue_id,
+            VenueActivity.activity_type_id == activity_type_id,
+            VenueActivity.support_status == SupportStatus.SUPPORTED,
+        )
+    ).first()
+    reference = activity.source_reference if activity else None
+    if not reference or reference != reference.strip() or "\\" in reference:
+        return None
+
+    expected_host = (
+        "activesgcircle.gov.sg"
+        if venue.category == VenueCategory.SPORTS_FACILITY
+        else "nparks.gov.sg"
+        if venue.category == VenueCategory.PARK
+        else None
+    )
+    if expected_host is None:
+        return None
+    try:
+        parsed = urlsplit(reference)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return None
+    if (
+        parsed.scheme.lower() != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or port is not None
+    ):
+        return None
+    hostname = hostname.lower()
+    if hostname != expected_host and not hostname.endswith(f".{expected_host}"):
+        return None
+    return reference
+
+
+def _venue(db: Session, venue: Venue, activity_type_id: UUID) -> dict:
+    source_label = (
+        "Sport Singapore via data.gov.sg"
+        if venue.data_source == "DATA_GOV_SG_SPORT_FACILITIES"
+        else "NParks via data.gov.sg"
+        if venue.data_source == "DATA_GOV_SG_NPARKS_PARKS"
+        else "Demo catalogue"
+        if venue.data_source == "DEMO"
+        else venue.data_source
+    )
     return {
         "id": venue.venue_id,
         "name": venue.name,
         "category": venue.category.value,
+        "meetingPoint": venue.meeting_point,
         "address": venue.address,
         "latitude": venue.latitude,
         "longitude": venue.longitude,
+        "dataSource": source_label,
+        "officialUrl": _official_url(db, venue, activity_type_id),
+        "lastUpdated": (
+            _aware_utc(venue.last_synced_at) if venue.last_synced_at else None
+        ),
     }
 
 

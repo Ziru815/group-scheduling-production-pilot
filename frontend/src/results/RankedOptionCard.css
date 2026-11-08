@@ -24,6 +24,12 @@
   text-align: left;
 }
 
+.ropt__summary:disabled,
+.ropt__time:disabled,
+.ropt__show-times:disabled {
+  cursor: wait;
+}
+
 .ropt__main {
   display: grid;
   flex: 1;
@@ -67,6 +73,17 @@
   color: var(--color-text-muted);
 }
 
+.ropt__time-count {
+  width: fit-content;
+  margin-top: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-info-soft);
+  color: var(--color-info-text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
 .ropt__score {
   display: grid;
   justify-items: center;
@@ -95,6 +112,47 @@
   gap: var(--space-2);
   padding: 0 var(--space-4) var(--space-4);
   border-top: 1px solid var(--color-border);
+}
+
+.ropt__time-picker {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.ropt__times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ropt__time {
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+.ropt__time--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.ropt__show-times {
+  width: fit-content;
+  min-height: var(--tap-target);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .ropt__why {
@@ -147,10 +205,25 @@
   font-size: var(--text-sm);
 }
 
-.ropt__venueinfo a {
+.ropt__venue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.ropt__venue-actions a {
+  min-height: var(--tap-target);
+  display: inline-flex;
+  align-items: center;
   font-weight: 600;
 }
 
+.ropt__venue-actions a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ropt__source,
 .ropt__breakdown {
   font-size: var(--text-xs);
   color: var(--color-text-muted);

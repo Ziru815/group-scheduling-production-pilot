@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,7 +10,9 @@ from fastapi.responses import JSONResponse
 from app.controllers import router
 from app.controllers.web_api import router as web_router
 from app.core.config import settings
-from app.core.database import create_db_and_tables
+from app.core.database import create_db_and_tables, database_is_ready
+from app.services.activity_availability import ActivityUnavailableError
+from app.static_site import mount_static_site
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings.validate_runtime()
     if settings.auto_create_tables: create_db_and_tables()
     if settings.debug_auth_enabled: logger.warning("DEBUG authentication is enabled; never deploy this setting")
     yield
@@ -48,12 +52,41 @@ async def validation_error(_: Request, exc: RequestValidationError):
     )
 
 
+@app.exception_handler(ActivityUnavailableError)
+async def activity_unavailable(_: Request, exc: ActivityUnavailableError):
+    message = str(exc)
+    if exc.field_name is not None:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "VALIDATION_FAILED",
+                    "message": "Please fix the highlighted fields.",
+                    "fields": {exc.field_name: message},
+                }
+            },
+        )
+    return JSONResponse(
+        status_code=409,
+        content={"error": {"code": "ACTIVITY_UNSUPPORTED", "message": message}},
+    )
+
+
 @app.get("/health", tags=["system"])
 def health(): return {"status": "ok", "service": settings.app_name}
 
 
+@app.get("/ready", tags=["system"])
+def ready():
+    if not database_is_ready():
+        raise HTTPException(503, "Database is unavailable")
+    return {"status": "ready"}
+
+
 def _error_code(status_code: int, detail: str) -> str:
     lower = detail.lower()
+    if "activity is not currently supported" in lower:
+        return "ACTIVITY_UNSUPPORTED"
     if status_code == 401:
         return "UNAUTHENTICATED"
     if status_code == 403:
@@ -77,4 +110,8 @@ def _error_code(status_code: int, detail: str) -> str:
     if status_code == 503:
         return "EXTERNAL_SERVICE_UNAVAILABLE"
     return "UNKNOWN"
+
+
+if settings.static_dir:
+    mount_static_site(app, Path(settings.static_dir))
 

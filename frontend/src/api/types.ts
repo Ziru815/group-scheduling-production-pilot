@@ -108,12 +108,14 @@ export type ApiErrorCode =
   | 'NOT_FOUND' // 404
   | 'INVITATION_INVALID' // 404: unknown or revoked invitation token (UC-05.EX.1)
   | 'VALIDATION_FAILED' // 422: see `fields`
+  | 'ACTIVITY_UNSUPPORTED' // 409: historical Session is readable but no longer mutable
   | 'SESSION_CLOSED' // 409: deadline passed, cancelled or confirmed
   | 'NO_RESPONSES' // 409: UC-09 precondition, no valid response yet
   | 'NO_FEASIBLE_TIMESLOT' // 409: UC-09.AC.1
   | 'RECOMMENDATIONS_STALE' // 409: confirm attempted on outdated results
   | 'COMBINATION_NOT_FEASIBLE' // 409
   | 'CALENDAR_NOT_CONNECTED' // 409
+  | 'SESSION_NOT_CONFIRMED' // 409: Calendar sync retry before confirmation
   | 'EXTERNAL_SERVICE_UNAVAILABLE' // 503: provider down; client may retry (NFR-3)
   | 'NOT_MOCKED' // 501: only returned by the MSW catch-all
   | 'NETWORK_ERROR' // client-side: request never reached the server
@@ -165,11 +167,25 @@ export interface VenueSummary {
   name: string
   category: VenueCategory
   address: string
+  /** Public landmark used by the group to meet; never a participant location. */
+  meetingPoint: string | null
   latitude: number
   longitude: number
+  /** Catalogue provenance only; this is not a live availability claim. */
+  dataSource: string
+  lastUpdated: IsoDateTime | null
+  /** Reviewed activity-specific provider page; never a live availability claim. */
+  officialUrl: string | null
 }
 
 /** The Organiser's final choice (FR-E4, FR-E5). */
+export interface CalendarSyncSummary {
+  succeeded: number
+  failed: number
+  notConnected: number
+  canRetry: boolean
+}
+
 export interface ConfirmedPlan {
   combinationId: Id
   venue: VenueSummary
@@ -178,6 +194,8 @@ export interface ConfirmedPlan {
   /** Display names only (FR-E3, NFR-13). */
   attendees: { participantId: Id; displayName: string }[]
   confirmedAt: IsoDateTime
+  /** Best-effort Google Calendar result; confirmation itself always succeeds first. */
+  calendarSync: CalendarSyncSummary
 }
 
 /** One row on "Your sessions" (§3.1). */
@@ -203,6 +221,8 @@ export interface SessionDetail {
   id: Id
   name: string
   activityType: ActivityType & { category: string }
+  /** False keeps a historical Session readable but hides every mutation control. */
+  activitySupported: boolean
   organiserName: string
   status: SessionStatus
   myRole: ParticipantRole
@@ -290,6 +310,7 @@ export interface InvitationPreview {
   responseDeadline: IsoDateTime
   isClosed: boolean
   alreadyJoined: boolean
+  activitySupported: boolean
 }
 
 export interface JoinSessionResponse {

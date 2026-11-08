@@ -97,12 +97,14 @@ class OneMapAdapter:
         if not query:
             return GeocodeResult(status=GeocodeStatus.INVALID, detail="empty query")
         params = {"searchVal": query, "returnGeom": "Y", "getAddrDetails": "Y", "pageNum": "1"}
-        try:
-            resp = await self._client.get(
-                f"{self._base_url}/api/common/elastic/search", params=params
-            )
-        except httpx.HTTPError as exc:
-            return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail=type(exc).__name__)
+        resp, unavailable_detail = await self._request_with_token_retry(
+            "/api/common/elastic/search",
+            params,
+        )
+        if resp is None:
+            return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail=unavailable_detail)
+        if resp.status_code in (401, 403):
+            return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail="OneMap rejected the token")
         if _is_unavailable(resp):
             return GeocodeResult(status=GeocodeStatus.UNAVAILABLE, detail=f"HTTP {resp.status_code}")
         try:
@@ -125,10 +127,6 @@ class OneMapAdapter:
         mode: TransportMode,
         depart_at: datetime,
     ) -> RouteResult:
-        token = await self._get_token()
-        if token is None:
-            return RouteResult(status=RoutingStatus.UNAVAILABLE, detail="no OneMap token")
-
         params: dict[str, str] = {
             "start": f"{origin.lat},{origin.lng}",
             "end": f"{destination.lat},{destination.lng}",
@@ -145,17 +143,13 @@ class OneMapAdapter:
                     "numItineraries": str(self._pt_itineraries),
                 }
             )
-        try:
-            resp = await self._client.get(
-                f"{self._base_url}/api/public/routingsvc/route",
-                params=params,
-                headers={"Authorization": f"Bearer {token}"},
-            )
-        except httpx.HTTPError as exc:
-            return RouteResult(status=RoutingStatus.UNAVAILABLE, detail=type(exc).__name__)
-
-        if resp.status_code in (401, 403) and self._static_token is None:
-            self._token = None  # stale token: drop it so the next call fetches a new one
+        resp, unavailable_detail = await self._request_with_token_retry(
+            "/api/public/routingsvc/route",
+            params,
+        )
+        if resp is None:
+            return RouteResult(status=RoutingStatus.UNAVAILABLE, detail=unavailable_detail)
+        if resp.status_code in (401, 403):
             return RouteResult(status=RoutingStatus.UNAVAILABLE, detail="OneMap rejected the token")
         if _is_unavailable(resp):
             return RouteResult(status=RoutingStatus.UNAVAILABLE, detail=f"HTTP {resp.status_code}")
@@ -175,13 +169,52 @@ class OneMapAdapter:
     # Token handling
     # ------------------------------------------------------------------
 
+    def _has_refresh_credentials(self) -> bool:
+        return bool(self._email and self._password)
+
+    async def _request_with_token_retry(
+        self,
+        path: str,
+        params: dict[str, str],
+    ) -> tuple[httpx.Response | None, str | None]:
+        token = await self._get_token()
+        if token is None:
+            return None, "no OneMap token"
+        try:
+            response = await self._client.get(
+                f"{self._base_url}{path}",
+                params=params,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        except httpx.HTTPError as exc:
+            return None, type(exc).__name__
+
+        if response.status_code not in (401, 403) or not self._has_refresh_credentials():
+            return response, None
+
+        async with self._token_lock:
+            if self._token == token:
+                self._token = None
+                self._token_expires_at = None
+
+        refreshed_token = await self._get_token()
+        if refreshed_token is None:
+            return None, "no OneMap token"
+        try:
+            response = await self._client.get(
+                f"{self._base_url}{path}",
+                params=params,
+                headers={"Authorization": f"Bearer {refreshed_token}"},
+            )
+        except httpx.HTTPError as exc:
+            return None, type(exc).__name__
+        return response, None
+
     async def _get_token(self) -> str | None:
-        if self._static_token:
+        if not self._has_refresh_credentials():
             return self._static_token
         if self._token and self._token_expires_at and _now() < self._token_expires_at:
             return self._token
-        if not (self._email and self._password):
-            return None
         async with self._token_lock:
             if self._token and self._token_expires_at and _now() < self._token_expires_at:
                 return self._token  # another task refreshed it while we waited

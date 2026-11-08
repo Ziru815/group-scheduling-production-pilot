@@ -74,6 +74,24 @@ def test_booking_lead_time():
     assert pre_routing_exclusion(combo(lead=lead), 1, in_time) is None
 
 
+def test_sports_only_constraints_never_exclude_a_park():
+    park = combo(
+        attendees=3,
+        category=VenueCategory.PARK,
+        min_group=99,
+        lead=999999,
+    )
+    sports = combo(
+        attendees=3,
+        category=VenueCategory.SPORTS_FACILITY,
+        min_group=99,
+        lead=999999,
+    )
+
+    assert pre_routing_exclusion(park, 3, NOW) is None
+    assert pre_routing_exclusion(sports, 3, NOW) is ExclusionReason.GROUP_SIZE
+
+
 # ---------------------------------------------------------------- FR-D3
 
 

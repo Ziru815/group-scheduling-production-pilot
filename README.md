@@ -12,6 +12,15 @@ This repository integrates the supplied React frontend, FastAPI and SQLModel bac
 
 See `SRS_TRACEABILITY.md` for requirement coverage and the SRS items that still require external credentials or a stakeholder decision.
 
+## Production pilot
+
+The production image serves the React frontend and FastAPI API from one origin. CI verifies Python 3.13, Node 22, Railway configuration, and the root Docker image on every pull request and production-pilot branch update.
+
+- Use `docs/development.md` for a reproducible local setup.
+- Use `docs/deployment.md` for the private GitHub and Railway PostgreSQL deployment procedure.
+- Use `docs/google-calendar-deployment.md` for the disabled-first Google Calendar rollout, live acceptance test, and rollback procedure on Render.
+- Use `.env.production.example` only as a variable checklist; keep all real secrets in Railway.
+
 ## Fastest demo with Docker
 
 ```bash
@@ -61,7 +70,7 @@ The integrated frontend example already has `VITE_USE_MOCKS=false` and `VITE_DEM
 
 ## Live provider configuration
 
-For non-demo scoring, keep `USE_MOCK_PROVIDERS=false` and configure OneMap with either `ONEMAP_TOKEN` or `ONEMAP_EMAIL` plus `ONEMAP_PASSWORD`. Configure Google identity with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and a callback URI registered as `GOOGLE_REDIRECT_URI`.
+For non-demo scoring, keep `USE_MOCK_PROVIDERS=false` and configure OneMap with either `ONEMAP_TOKEN` or `ONEMAP_EMAIL` plus `ONEMAP_PASSWORD`. Configure Google identity with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and a callback URI registered as `GOOGLE_REDIRECT_URI`. Google Calendar uses a separate consent callback, encryption key, and disabled-first feature flag; follow `docs/google-calendar-deployment.md` before enabling it.
 
 The SRS still leaves the public-transport provider, Mall data source, score normalization, journey cap, shortlist size, default attendance threshold, Candidate Timeslot step, and tie-break rule open. Their current values are explicit configuration defaults, not claimed stakeholder decisions.
 

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, redirectToBackend } from '../client'
 import { queryKeys } from '../queryKeys'
-import type { CalendarBusyResponse, CalendarConnection, Id } from '../types'
+import type { CalendarBusyResponse, CalendarConnection, CalendarSyncSummary, Id } from '../types'
 
 export function useCalendarConnection() {
   return useQuery({
@@ -46,5 +46,17 @@ export function useDisconnectCalendar() {
 export function useImportCalendarBusy(sessionId: Id) {
   return useMutation({
     mutationFn: () => api.post<CalendarBusyResponse>(`/api/sessions/${sessionId}/calendar-busy`),
+  })
+}
+
+/** Retry only the caller's permitted scope: all members for an organiser, self otherwise. */
+export function useRetryCalendarSync(sessionId: Id) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: queryKeys.calendarSync(sessionId),
+    mutationFn: () => api.post<CalendarSyncSummary>(`/api/sessions/${sessionId}/calendar-sync`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session(sessionId) })
+    },
   })
 }
